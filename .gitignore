@@ -1,0 +1,76 @@
+# Python-related files
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+*.swp
+*.swo
+*.egg
+*.egg-info/
+dist/
+build/
+*.egg-info/
+pip-log.txt
+
+# Virtual environment
+venv/
+env/
+ENV/
+.venv/
+
+# Django-related files
+*.sqlite3
+db.sqlite3
+media/
+staticfiles/
+static/
+logs/
+*.log
+local_settings.py
+
+# Environment variables
+.env
+*.env
+
+# IDEs and editors
+.vscode/
+.idea/
+*.iml
+
+# macOS files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows Thumbs
+Thumbs.db
+ehthumbs.db
+
+# Node.js dependencies (if using Node.js for front-end)
+node_modules/
+
+# Coverage and testing
+.coverage
+*.cover
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.pytest_cache/
+
+# Jupyter Notebooks (optional if using Jupyter with Django)
+.ipynb_checkpoints
+
+# Docker
+docker-compose.override.yml
+.dockerignore
+*.dockerfile
+*.log
+
+# Miscellaneous
+*.bak
+*.tmp
+*.~*
+
+# Security-related
+secrets.json
