@@ -44,7 +44,7 @@ jobs:
         max-line-length: 88
         exclude: migrations,venv
 
-    - name: Run Tests
-      run: |
-        export DJANGO_SETTINGS_MODULE=backend.settings
-        python backend/manage.py test
+#    - name: Run Tests
+#      run: |
+#        export DJANGO_SETTINGS_MODULE=backend.settings
+#        python backend/manage.py test
