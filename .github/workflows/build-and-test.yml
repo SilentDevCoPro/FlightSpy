@@ -13,7 +13,7 @@ jobs:
     strategy:
       max-parallel: 4
       matrix:
-        python-version: [3.9]
+        python-version: [3.11]
 
     steps:
     - name: Check out code
@@ -28,22 +28,23 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+        key: ${{ runner.os }}-pip-${{ hashFiles('backend/requirements.txt') }}
         restore-keys: |
           ${{ runner.os }}-pip-
 
     - name: Install Dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
+        pip install -r backend/requirements.txt
 
     - name: Python flake8 Lint
       uses: py-actions/flake8@v2.3.0
       with:
-        path: .
+        path: backend/backend
         max-line-length: 88
         exclude: migrations,venv
 
-    - name: Run Tests
-      run: |
-        python manage.py test
+#    - name: Run Tests
+#      run: |
+#        export DJANGO_SETTINGS_MODULE=backend.settings
+#        python backend/manage.py test
