@@ -37,7 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'dump1090_collector'
+    'dump1090_collector.apps.Dump1090Config'
 ]
 
 MIDDLEWARE = [
@@ -76,8 +76,12 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'flightspy',         # matches POSTGRES_DB
+        'USER': 'flightspy_user',    # matches POSTGRES_USER
+        'PASSWORD': 'secret_password',  # matches POSTGRES_PASSWORD
+        'HOST': 'db',                # matches the service name in docker-compose
+        'PORT': 5432,
     }
 }
 
@@ -117,6 +121,10 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = 'static/'
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
