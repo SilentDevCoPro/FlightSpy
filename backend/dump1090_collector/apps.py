@@ -2,6 +2,7 @@ from django.apps import AppConfig
 import requests
 import time
 import threading
+from datetime import datetime
 
 def poll_dump1090(FlightData):
     while True:
@@ -9,6 +10,9 @@ def poll_dump1090(FlightData):
             response = requests.get('http://host.docker.internal:8080/dump1090/data.json')
             response.raise_for_status()
             data = response.json()
+            
+            current_time = datetime.now()
+            timestamp = current_time.time()
             
             for aircraft in data:
                 FlightData.objects.create(
@@ -25,7 +29,9 @@ def poll_dump1090(FlightData):
                     speed_in_knots=aircraft.get('speed', 0),
                     messages_received=aircraft.get('messages', 0),
                     seen=aircraft.get('seen', 0),
+                    timestamp=timestamp
                 )
+            
             
         except Exception as e:
             print("Error polling dump1090: ", e)
