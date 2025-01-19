@@ -4,7 +4,7 @@ import time
 import threading
 from datetime import datetime
 
-def poll_dump1090(FlightData):
+def poll_dump1090(Dump1090FlightData, AdsbdbAircraftData, AdsbdbCallsignData):
     while True:
         try:
             response = requests.get('http://host.docker.internal:8080/dump1090/data.json')
@@ -15,7 +15,7 @@ def poll_dump1090(FlightData):
             timestamp = current_time.time()
             
             for aircraft in data:
-                FlightData.objects.create(
+                Dump1090FlightData.objects.create(
                     hex_id=aircraft.get('hex', ''),
                     squawk_code=aircraft.get('squawk', 0),
                     flight_callsign=aircraft.get('flight', ''),
@@ -31,19 +31,27 @@ def poll_dump1090(FlightData):
                     seen=aircraft.get('seen', 0),
                     timestamp=timestamp
                 )
-            
+                
+                hex_detail_response = requests.get(f'https://api.adsbdb.com/v0/aircraft/{aircraft['hex']}')
+                hex_detail_response.raise_for_status()
+                
+                
+                callsign_detail_response = requests.get(f'https://api.adsbdb.com/v0/callsign/{aircraft['flight'].strip()}')
+                callsign_detail_response.raise_for_status()
+                
+                
             
         except Exception as e:
             print("Error polling dump1090: ", e)
         
-        time.sleep(2)
+        time.sleep(5)
 
 class Dump1090Config(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'dump1090_collector'
     
     def ready(self):
-        from .models import FlightData
-        thread = threading.Thread(target=poll_dump1090, args=(FlightData,), daemon=True)
+        from .models import Dump1090FlightData, AdsbdbAircraftData, AdsbdbCallsignData
+        thread = threading.Thread(target=poll_dump1090, args=(Dump1090FlightData, AdsbdbAircraftData, AdsbdbCallsignData,), daemon=True)
         thread.start()
 
