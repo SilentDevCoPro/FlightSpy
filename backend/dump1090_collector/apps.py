@@ -7,72 +7,70 @@ import logging
 
 
 
-def store_dump1090_data(aircraft, timestamp, Dump1090FlightData):
-    """
-    Store one aircraft's Dump1090 info in the database.
-    - 'aircraft' is a single dictionary from dump1090 data.
-    - 'timestamp' is the current integer timestamp.
-    """
+def store_data(FlightData, dump1090_aircraft_data, aircraft_data, callsign_data):
+    valid_position = bool(dump1090_aircraft_data.get('validposition', 0))
+    valid_track = bool(dump1090_aircraft_data.get('validtrack', 0))
+    timestamp = datetime.now()
     
-    hex_value = (aircraft.get('hex') or '')
-    
-    if not hex_value:
-        return None
-    
-    valid_position = bool(aircraft.get('validposition', 0))
-    valid_track = bool(aircraft.get('validtrack', 0))
-    
-    flight_data = Dump1090FlightData.objects.create(
-        hex_id=aircraft.get('hex', ''),
-        squawk_code=aircraft.get('squawk', 0),
-        flight_callsign=aircraft.get('flight', ''),
-        latitude=aircraft.get('lat', 0.0),
-        longitude=aircraft.get('lon', 0.0),
-        valid_position=valid_position,  
-        altitude=aircraft.get('altitude', 0),
-        vertical_rate=aircraft.get('vert_rate', 0),
-        track=aircraft.get('track', 0),
+    flight_data = FlightData.objects.create(
+        hex_id=dump1090_aircraft_data.get('hex', ''),
+        squawk_code=dump1090_aircraft_data.get('squawk', 0),
+        flight_callsign=dump1090_aircraft_data.get('flight', ''),
+        latitude=dump1090_aircraft_data.get('lat', 0.0),
+        longitude=dump1090_aircraft_data.get('lon', 0.0),
+        valid_position=valid_position,
+        altitude=dump1090_aircraft_data.get('altitude', 0),
+        vertical_rate=dump1090_aircraft_data.get('vert_rate', 0),
+        track=dump1090_aircraft_data.get('track', 0),
         valid_track=valid_track,
-        speed_in_knots=aircraft.get('speed', 0),
-        messages_received=aircraft.get('messages', 0),
-        seen=aircraft.get('seen', 0),
-        timestamp=timestamp
+        speed_in_knots=dump1090_aircraft_data.get('speed', 0),
+        messages_received=dump1090_aircraft_data.get('messages', 0),
+        seen=dump1090_aircraft_data.get('seen', 0),
+        timestamp=timestamp,
+
+        # Additional fields from adsbdb aircraft data
+        aircraft_type=aircraft_data.get('type', None),
+        icao_type=aircraft_data.get('icao_type', None),
+        manufacturer=aircraft_data.get('manufacturer', None),
+        mode_s=aircraft_data.get('mode_s', None),
+        registration=aircraft_data.get('registration', None),
+        registered_owner_country_iso_name=aircraft_data.get('registered_owner_country_iso_name', None),
+        registered_owner_country_name=aircraft_data.get('registered_owner_country_name', None),
+        registered_owner_operator_flag_code=aircraft_data.get('registered_owner_operator_flag_code', None),
+        registered_owner=aircraft_data.get('registered_owner', None),
+        url_photo=aircraft_data.get('url_photo', None),
+        url_photo_thumbnail=aircraft_data.get('url_photo_thumbnail', None),
+
+        # Additional fields from adsbdb callsign data
+        callsign=callsign_data.get('callsign', None),
+        callsign_icao=callsign_data.get('callsign_icao', None),
+        callsign_iata=callsign_data.get('callsign_iata', None),
+        airline=callsign_data.get('airline', {}).get('name', None),
+        origin=callsign_data.get('origin', {}).get('name', None),
+        destination=callsign_data.get('destination', {}).get('name', None),
     )
     return flight_data
     
 
 
-def poll_dump1090(Dump1090FlightData, AdsbdbAircraftData, AdsbdbCallsignData):
+def poll_dump1090(FlightData):
     while True:
-        try:
-            response = requests.get('http://host.docker.internal:8080/dump1090/data.json')
-            response.raise_for_status()
-            data = response.json()
-            
-            current_time = datetime.now()
-            timestamp = models.DateTimeField()
-            
-            for aircraft in data:
-                Dump1090FlightData.objects.create(
-                    hex_id=aircraft.get('hex', ''),
-                    squawk_code=aircraft.get('squawk', 0),
-                    flight_callsign=aircraft.get('flight', ''),
-                    latitude=aircraft.get('lat', 0.0),
-                    longitude=aircraft.get('lon', 0.0),
-                    valid_position=bytes([aircraft.get('validposition', 0)]),  
-                    altitude=aircraft.get('altitude', 0),
-                    vertical_rate=aircraft.get('vert_rate', 0),
-                    track=aircraft.get('track', 0),
-                    valid_track=bytes([aircraft.get('validtrack', 0)]),
-                    speed_in_knots=aircraft.get('speed', 0),
-                    messages_received=aircraft.get('messages', 0),
-                    seen=aircraft.get('seen', 0),
-                    timestamp=timestamp
-                )
-            
-        except Exception as e:
-            print("Error polling dump1090: ", e)
+        dump1090_data = fetch_dump1090_data()
+        adsbdb_aircraft_data = {}
+        adsbdb_callsign_data = {}
         
+        for flight in dump1090_data:    
+            if flight['hex']:
+                adsbdb_aircraft_data = fetch_adsbdbAircraftData(flight['hex'])
+            else:
+                print(f"No hex code to call adsb api: {flight}")
+            if flight['flight']:
+                adsbdb_callsign_data = fetch_adsbdbCallsignData(flight['flight'].strip())
+            
+            store_data(FlightData, flight, adsbdb_aircraft_data, adsbdb_callsign_data)
+                    
+            
+                
         time.sleep(5)
         
 def fetch_json(url: str, timeout=10) -> dict:
@@ -104,8 +102,8 @@ class Dump1090Config(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'dump1090_collector'
     
-    def ready(self):
-        from .models import Dump1090FlightData, AdsbdbAircraftData, AdsbdbCallsignData
-        thread = threading.Thread(target=poll_dump1090, args=(Dump1090FlightData, AdsbdbAircraftData, AdsbdbCallsignData,), daemon=True)
-        thread.start()
+    # def ready(self):
+    #     from .models import FlightData
+    #     thread = threading.Thread(target=poll_dump1090, args=(FlightData,), daemon=True)
+    #     thread.start()
 

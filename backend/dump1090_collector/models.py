@@ -1,10 +1,6 @@
 from django.db import models
 
-class Dump1090FlightData(models.Model):
-    """
-    Stores ADS-B flight information as broadcast by the aircraft 
-    and received by Dump1090 .
-    """
+class FlightData(models.Model):
     hex_id = models.CharField(max_length=6, blank=True, null=True)
     squawk_code = models.IntegerField(blank=True, null=True)
     flight_callsign = models.CharField(max_length=20, blank=True, null=True)
@@ -18,17 +14,6 @@ class Dump1090FlightData(models.Model):
     speed_in_knots = models.IntegerField(default=0)
     messages_received = models.IntegerField(default=0)
     seen = models.IntegerField(default=0)
-    timestamp = models.DateTimeField()
-
-    def __str__(self):
-        return f"{self.flight_callsign or 'Unknown'} ({self.hex_id})"
-
-
-class AdsbdbAircraftData(models.Model):
-    """
-    Stores additional details about an aircraft (https://www.adsbdb.com/).
-    We make 'hex_id' the primary key, assuming each aircraft has a unique Mode S code.
-    """
     aircraft_type = models.CharField(max_length=50, blank=True, null=True)
     icao_type = models.CharField(max_length=50, blank=True, null=True)
     manufacturer = models.CharField(max_length=100, blank=True, null=True)
@@ -40,15 +25,6 @@ class AdsbdbAircraftData(models.Model):
     registered_owner = models.CharField(max_length=100, blank=True, null=True)
     url_photo = models.URLField(blank=True, null=True)
     url_photo_thumbnail = models.URLField(blank=True, null=True)
-
-    def __str__(self):
-        return f"Hex {self.hex_id} - {self.registration or 'Unknown'}"
-
-
-class AdsbdbCallsignData(models.Model):
-    """
-    Stores callsign-related data for particular flights (https://www.adsbdb.com/).
-    """
     callsign = models.CharField(max_length=20, blank=True, null=True)
     callsign_icao = models.CharField(max_length=20, blank=True, null=True)
     callsign_iata = models.CharField(max_length=20, blank=True, null=True)
@@ -56,9 +32,8 @@ class AdsbdbCallsignData(models.Model):
     origin = models.CharField(max_length=100, blank=True, null=True)
     midpoint = models.CharField(max_length=100, blank=True, null=True)
     destination = models.CharField(max_length=100, blank=True, null=True)
+    models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
-        return (
-            f"Callsign: {self.callsign or 'N/A'} "
-            f"(Hex: {self.hex_id or 'Unknown'})"
-        )
+        return f"{self.flight_callsign or 'Unknown'} ({self.hex_id})"
+
