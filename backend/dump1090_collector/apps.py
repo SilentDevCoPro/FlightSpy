@@ -8,17 +8,17 @@ import logging
 
 
 def store_data(FlightData, dump1090_aircraft_data, aircraft_data, callsign_data):
-    aircraft_data = aircraft_data or {}
-    callsign_data = callsign_data or {}
     
     valid_position = bool(dump1090_aircraft_data.get('validposition', 0))
     valid_track = bool(dump1090_aircraft_data.get('validtrack', 0))
-    timestamp = timezone.now()
     
-    logging.error(f'aircraft data: {aircraft_data}')
-    logging.error(f'callsign data: {callsign_data}')
+    timestamp = timezone.now()
+
+    aircraft_info = aircraft_data.get('response', {}).get('aircraft', {})
+    flightroute_info = callsign_data.get('response', {}).get('flightroute', {})
     
     flight_data = FlightData.objects.create(
+        # Primary dump1090 fields
         hex_id=dump1090_aircraft_data.get('hex', ''),
         squawk_code=dump1090_aircraft_data.get('squawk', 0),
         flight_callsign=dump1090_aircraft_data.get('flight', ''),
@@ -34,49 +34,28 @@ def store_data(FlightData, dump1090_aircraft_data, aircraft_data, callsign_data)
         seen=dump1090_aircraft_data.get('seen', 0),
         timestamp=timestamp,
 
-        # Additional fields from adsbdb aircraft data
-        aircraft_type=aircraft_data.get('response', {}).get('aircraft', {}).get('type', None),
-        icao_type=aircraft_data.get('response', {}).get('aircraft', {}).get('icao_type', None),
-        manufacturer=aircraft_data.get('response', {}).get('aircraft', {}).get('manufacturer', None),
-        mode_s=aircraft_data.get('response', {}).get('aircraft', {}).get('mode_s', None),
-        registration=aircraft_data.get('response', {}).get('aircraft', {}).get('registration', None),
-        registered_owner_country_iso_name=aircraft_data.get('response', {}).get('aircraft', {}).get('registered_owner_country_iso_name', None),
-        registered_owner_country_name=aircraft_data.get('response', {}).get('aircraft', {}).get('registered_owner_country_name', None),
-        registered_owner_operator_flag_code=aircraft_data.get('response', {}).get('aircraft', {}).get('registered_owner_operator_flag_code', None),
-        registered_owner=aircraft_data.get('response', {}).get('aircraft', {}).get('registered_owner', None),
-        url_photo=aircraft_data.get('response', {}).get('aircraft', {}).get('url_photo', None),
-        url_photo_thumbnail=aircraft_data.get('response', {}).get('aircraft', {}).get('url_photo_thumbnail', None),
+        # Aircraft data (from adsbdb)
+        aircraft_type=aircraft_info.get('type'),
+        icao_type=aircraft_info.get('icao_type'),
+        manufacturer=aircraft_info.get('manufacturer'),
+        mode_s=aircraft_info.get('mode_s'),
+        registration=aircraft_info.get('registration'),
+        registered_owner_country_iso_name=aircraft_info.get('registered_owner_country_iso_name'),
+        registered_owner_country_name=aircraft_info.get('registered_owner_country_name'),
+        registered_owner_operator_flag_code=aircraft_info.get('registered_owner_operator_flag_code'),
+        registered_owner=aircraft_info.get('registered_owner'),
+        url_photo=aircraft_info.get('url_photo'),
+        url_photo_thumbnail=aircraft_info.get('url_photo_thumbnail'),
 
+        # Callsign/flight route data (from adsbdb)
+        callsign=flightroute_info.get('callsign'),
+        callsign_icao=flightroute_info.get('callsign_icao'),
+        callsign_iata=flightroute_info.get('callsign_iata'),
+        airline=flightroute_info.get('airline', {}).get('name'),
+        origin=flightroute_info.get('origin', {}).get('name'),
+        destination=flightroute_info.get('destination', {}).get('name'),
+    )
 
-        # Additional fields from adsbdb callsign data
-        callsign=callsign_data.get('callsign', None),
-        callsign_icao=callsign_data.get('callsign_icao', None),
-        callsign_iata=callsign_data.get('callsign_iata', None),
-        airline=callsign_data.get('airline', {}).get('name', None),
-        origin=callsign_data.get('origin', {}).get('name', None),
-        destination=callsign_data.get('destination', {}).get('name', None),
-    )
-    
-    logging.error(
-        f"Created FlightData with ID {flight_data.id}: "
-        f"aircraft_type={flight_data.aircraft_type}, "
-        f"icao_type={flight_data.icao_type}, "
-        f"manufacturer={flight_data.manufacturer}, "
-        f"mode_s={flight_data.mode_s}, "
-        f"registration={flight_data.registration}, "
-        f"owner_country_iso_name={flight_data.registered_owner_country_iso_name}, "
-        f"owner_country_name={flight_data.registered_owner_country_name}, "
-        f"owner_operator_flag_code={flight_data.registered_owner_operator_flag_code}, "
-        f"registered_owner={flight_data.registered_owner}, "
-        f"url_photo={flight_data.url_photo}, "
-        f"url_photo_thumbnail={flight_data.url_photo_thumbnail}, "
-        f"callsign={flight_data.callsign}, "
-        f"callsign_icao={flight_data.callsign_icao}, "
-        f"callsign_iata={flight_data.callsign_iata}, "
-        f"airline={flight_data.airline}, "
-        f"origin={flight_data.origin}, "
-        f"destination={flight_data.destination}"
-    )
     return flight_data
     
 
@@ -93,11 +72,10 @@ def poll_dump1090(FlightData):
             if flight['hex']:
                 adsbdb_aircraft_data = fetch_adsbdbAircraftData(flight['hex'])
             if flight['flight']:
-                adsbdb_callsign_data = fetch_adsbdbCallsignData(flight['flight'].strip())
-            
-            if adsbdb_aircraft_data or adsbdb_callsign_data:
-                data = store_data(FlightData, flight, adsbdb_aircraft_data, adsbdb_callsign_data)
-                logging.error(f'Data stored: {data}')
+                adsbdb_callsign_data = fetch_adsbdbCallsignData(flight['flight'])
+            if adsbdb_aircraft_data and adsbdb_callsign_data:
+                if adsbdb_callsign_data.get('response') != 'unknown callsign':
+                    store_data(FlightData, flight, adsbdb_aircraft_data, adsbdb_callsign_data)
                     
             
                 
