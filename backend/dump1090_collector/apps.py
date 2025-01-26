@@ -5,7 +5,7 @@ import time
 import threading
 import logging
 
-
+polling_time = 10
 
 def store_data(FlightData, dump1090_aircraft_data, aircraft_data, callsign_data):
     
@@ -35,25 +35,46 @@ def store_data(FlightData, dump1090_aircraft_data, aircraft_data, callsign_data)
         timestamp=timestamp,
 
         # Aircraft data (from adsbdb)
-        aircraft_type=aircraft_info.get('type'),
-        icao_type=aircraft_info.get('icao_type'),
-        manufacturer=aircraft_info.get('manufacturer'),
-        mode_s=aircraft_info.get('mode_s'),
-        registration=aircraft_info.get('registration'),
-        registered_owner_country_iso_name=aircraft_info.get('registered_owner_country_iso_name'),
-        registered_owner_country_name=aircraft_info.get('registered_owner_country_name'),
-        registered_owner_operator_flag_code=aircraft_info.get('registered_owner_operator_flag_code'),
-        registered_owner=aircraft_info.get('registered_owner'),
-        url_photo=aircraft_info.get('url_photo'),
-        url_photo_thumbnail=aircraft_info.get('url_photo_thumbnail'),
+        aircraft_type=aircraft_info.get('type', ''),
+        icao_type=aircraft_info.get('icao_type', ''),
+        manufacturer=aircraft_info.get('manufacturer', ''),
+        mode_s=aircraft_info.get('mode_s', ''),
+        registration=aircraft_info.get('registration', ''),
+        registered_owner_country_iso_name=aircraft_info.get('registered_owner_country_iso_name', ''),
+        registered_owner_country_name=aircraft_info.get('registered_owner_country_name', ''),
+        registered_owner_operator_flag_code=aircraft_info.get('registered_owner_operator_flag_code', ''),
+        registered_owner=aircraft_info.get('registered_owner', ''),
+        url_photo=aircraft_info.get('url_photo', ''),
+        url_photo_thumbnail=aircraft_info.get('url_photo_thumbnail', ''),
 
         # Callsign/flight route data (from adsbdb)
-        callsign=flightroute_info.get('callsign'),
-        callsign_icao=flightroute_info.get('callsign_icao'),
-        callsign_iata=flightroute_info.get('callsign_iata'),
-        airline=flightroute_info.get('airline', {}).get('name'),
-        origin=flightroute_info.get('origin', {}).get('name'),
-        destination=flightroute_info.get('destination', {}).get('name'),
+        callsign=flightroute_info.get('callsign', ''),
+        callsign_icao=flightroute_info.get('callsign_icao', ''),
+        callsign_iata=flightroute_info.get('callsign_iata', ''),
+        airline_name=flightroute_info.get('airline', {}).get('name', ''),
+        airline_icao=flightroute_info.get('airline', {}).get('icao', ''),
+        airline_iata=flightroute_info.get('airline', {}).get('iata', ''),
+        airline_country=flightroute_info.get('airline', {}).get('country', ''),
+        airline_country_iso=flightroute_info.get('airline', {}).get('country_iso', ''),
+        airline_callsign=flightroute_info.get('airline', {}).get('callsign', ''),
+        origin_name=flightroute_info.get('origin', {}).get('name', ''),
+        origin_country_iso_name=flightroute_info.get('origin', {}).get('country_iso_name', ''),
+        origin_country_name=flightroute_info.get('origin', {}).get('country_name', ''),
+        origin_elevation=flightroute_info.get('origin', {}).get('elevation', 0),
+        origin_iata_code=flightroute_info.get('origin', {}).get('iata_code', ''),
+        origin_icao_code=flightroute_info.get('origin', {}).get('icao_code', ''),
+        origin_latitude=flightroute_info.get('origin', {}).get('latitude', 0),
+        origin_longitude=flightroute_info.get('origin', {}).get('longitude', 0),
+        origin_municipality=flightroute_info.get('origin', {}).get('municipality', ''),
+        destination=flightroute_info.get('destination', {}).get('name', ''),
+        destination_country_iso_name=flightroute_info.get('destination', {}).get('country_iso_name', ''),
+        destination_country_name=flightroute_info.get('destination', {}).get('country_name', ''),
+        destination_elevation=flightroute_info.get('destination', {}).get('elevation', 0),
+        destination_iata_code=flightroute_info.get('destination', {}).get('iata_code', ''),
+        destination_icao_code=flightroute_info.get('destination', {}).get('icao_code', ''),
+        destination_latitude=flightroute_info.get('destination', {}).get('latitude', 0),
+        destination_longitude=flightroute_info.get('destination', {}).get('longitude', 0),
+        destination_municipality=flightroute_info.get('destination', {}).get('municipality', ''),
     )
 
     return flight_data
@@ -79,7 +100,7 @@ def poll_dump1090(FlightData):
                     
             
                 
-        time.sleep(5)
+        time.sleep(polling_time)
         
 def fetch_json(url: str, timeout=10) -> dict:
     response = None
