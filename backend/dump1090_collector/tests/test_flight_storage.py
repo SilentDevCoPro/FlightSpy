@@ -1,5 +1,4 @@
 from django.test import TestCase
-from django.utils import timezone
 
 from dump1090_collector.models import Aircraft, Airline, Airport, FlightData
 
@@ -9,6 +8,7 @@ from dump1090_collector.flight_storage import (
     get_or_create_airport,
     store_data,
 )
+
 
 class TestFlightStorage(TestCase):
     def test_get_or_create_aircraft_with_registration(self):
@@ -20,13 +20,13 @@ class TestFlightStorage(TestCase):
             'manufacturer': 'Boeing',
         }
         flight_hex = 'abc123'
-        
+
         aircraft = get_or_create_aircraft(aircraft_info, flight_hex)
         self.assertEqual(Aircraft.objects.count(), 1)
         self.assertEqual(aircraft.registration, 'N12345')
         self.assertEqual(aircraft.hex_id, 'abc123')
         self.assertEqual(aircraft.aircraft_type, 'B737')
-        
+
         same_aircraft = get_or_create_aircraft(aircraft_info, flight_hex='zzz999')
         self.assertEqual(Aircraft.objects.count(), 1)
         self.assertEqual(same_aircraft.id, aircraft.id)
@@ -39,11 +39,11 @@ class TestFlightStorage(TestCase):
             'manufacturer': 'Airbus',
         }
         flight_hex = 'def456'
-        
+
         aircraft = get_or_create_aircraft(aircraft_info, flight_hex)
         self.assertEqual(Aircraft.objects.count(), 1)
         self.assertEqual(aircraft.hex_id, 'def456')
-        self.assertEqual(aircraft.registration, '') 
+        self.assertEqual(aircraft.registration, '')
         self.assertEqual(aircraft.aircraft_type, 'A320')
 
     def test_get_or_create_airline(self):
@@ -59,7 +59,7 @@ class TestFlightStorage(TestCase):
         self.assertEqual(airline.icao, 'UAL')
         self.assertEqual(airline.iata, 'UA')
         self.assertEqual(airline.name, 'United Airlines')
-        
+
         same_airline = get_or_create_airline(airline_info)
         self.assertEqual(Airline.objects.count(), 1)
         self.assertEqual(same_airline.id, airline.id)
@@ -76,7 +76,7 @@ class TestFlightStorage(TestCase):
         self.assertEqual(airport.iata_code, 'SFO')
         self.assertEqual(airport.icao_code, 'KSFO')
         self.assertEqual(airport.name, 'San Francisco Intl')
-        
+
         same_airport_info = {
             'iata_code': 'SFO',
             'icao_code': 'KSFO',
@@ -140,7 +140,7 @@ class TestFlightStorage(TestCase):
         self.assertEqual(flight_data.flight_callsign, 'UAL1012')
         self.assertEqual(flight_data.altitude, 35000)
         self.assertTrue(flight_data.valid_position)
-        
+
         # Check foreign keys
         self.assertIsNotNone(flight_data.aircraft)
         self.assertEqual(flight_data.aircraft.registration, 'N98765')

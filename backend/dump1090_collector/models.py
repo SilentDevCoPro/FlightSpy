@@ -1,5 +1,6 @@
 from django.db import models
 
+
 class FlightData(models.Model):
     squawk_code = models.IntegerField(blank=True, null=True)
     flight_callsign = models.CharField(max_length=20, blank=True, null=True)
@@ -47,6 +48,7 @@ class FlightData(models.Model):
     def __str__(self):
         return f"{self.flight_callsign or 'Unknown'} ({self.aircraft.hex_id if self.aircraft else 'No AC'})"
 
+
 class Aircraft(models.Model):
     hex_id = models.CharField(max_length=6, unique=True)  # Or use 'mode_s' as unique
     aircraft_type = models.CharField(max_length=50, blank=True, null=True)
@@ -64,6 +66,7 @@ class Aircraft(models.Model):
     def __str__(self):
         return f"{self.registration or 'Unknown'} ({self.hex_id})"
 
+
 class Airline(models.Model):
     name = models.CharField(max_length=100, blank=True, null=True)
     icao = models.CharField(max_length=10, blank=True, null=True)
@@ -74,6 +77,7 @@ class Airline(models.Model):
 
     def __str__(self):
         return self.name or "Unknown Airline"
+
 
 class Airport(models.Model):
     name = models.CharField(max_length=200, blank=True, null=True)
@@ -88,4 +92,3 @@ class Airport(models.Model):
 
     def __str__(self):
         return f"{self.name or 'Unknown'} ({self.iata_code or self.icao_code or 'NoCode'})"
-

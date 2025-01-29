@@ -1,14 +1,14 @@
-from django.db.models import Q
 from django.utils import timezone
+
 
 def get_or_create_aircraft(aircraft_info, flight_hex):
     """
     Creates or retrieves the Aircraft by registration if possible,
     otherwise by hex_id.
     """
-    
+
     from .models import Aircraft
-    
+
     registration = (aircraft_info.get('registration') or '').strip()
 
     if registration:
@@ -55,9 +55,9 @@ def get_or_create_airline(airline_info):
     """
     Creates or retrieves the Airline based on icao+iata.
     """
-    
+
     from .models import Airline
-    
+
     airline_name = airline_info.get('name', '')
     airline_icao = airline_info.get('icao', '')
     airline_iata = airline_info.get('iata', '')
@@ -113,7 +113,7 @@ def store_data(flight, adsbdb_aircraft_data, adsbdb_callsign_data):
     2. Create or get the related models (Aircraft, Airline, Airport).
     3. Create the FlightData entry with foreign keys.
     """
-    
+
     from .models import FlightData
 
     # 1. Extract data from the JSON/dicts
