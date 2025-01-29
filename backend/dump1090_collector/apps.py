@@ -1,16 +1,14 @@
 from django.apps import AppConfig
-from django.utils import timezone
 from django.core.cache import cache
-from django.db.models import Q
-import requests
+from django.conf import settings
 import time
 import threading
 import logging 
 import json
-
+from dump1090_collector.fetch_helper import fetch_adsbdbAircraftData, fetch_adsbdbCallsignData, fetch_dump1090_data
 from dump1090_collector.flight_storage import store_data
 
-polling_time = 10
+polling_time = getattr(settings, 'DUMP1090_POLLING_TIME', 10)
 
 def poll_dump1090():
     while True:
@@ -52,48 +50,12 @@ def poll_dump1090():
                     logging.error(f'Failed to store data unknown callsign')
                     
         time.sleep(polling_time)
-        
-def fetch_json(url: str, timeout=10) -> dict:
-    response = None
-    try:
-        response = requests.get(url, timeout=timeout)
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.RequestException as e:
-        if response is not None:
-            try:
-                content = response.json()
-            except ValueError:
-                content = {}
-            
-            resp_value = content.get("response", "")
-            if resp_value == "unknown callsign":
-                logging.info(f"Unknown callsign from {url}: {content}")
-                return content
-            elif resp_value == "unknown aircraft":
-                logging.info(f"Unknown aircraft from {url}: {content}")
-                return content
-            else:
-                logging.error(f"Request to {url} failed: {e}. Response content: {content}")
-        else:
-            logging.error(f"No response returned from {url}. Error: {e}")
-        return {}
-
-def fetch_dump1090_data() -> list:
-    return fetch_json('http://host.docker.internal:8080/dump1090/data.json')
-
-def fetch_adsbdbAircraftData(hex_id) -> dict:
-    return fetch_json(f'https://api.adsbdb.com/v0/aircraft/{hex_id}')
-    
-def fetch_adsbdbCallsignData(flight) -> dict:
-    return fetch_json(f'https://api.adsbdb.com/v0/callsign/{flight.strip()}')
 
 class Dump1090Config(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'dump1090_collector'
     
     def ready(self):
-        from .models import FlightData
         thread = threading.Thread(target=poll_dump1090, args=(), daemon=True)
         thread.start()
 

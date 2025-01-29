@@ -28,6 +28,8 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+DUMP1090_POLLING_TIME = 10 
+
 
 # Application definition
 
