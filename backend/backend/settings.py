@@ -30,6 +30,7 @@ DEBUG = True
 ALLOWED_HOSTS = []
 
 DUMP1090_POLLING_TIME = 10
+CACHE_TTL = 600
 
 
 # Application definition

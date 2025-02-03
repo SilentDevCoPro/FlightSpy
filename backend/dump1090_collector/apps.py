@@ -42,9 +42,9 @@ def poll_dump1090():
             if adsbdb_aircraft_data and adsbdb_callsign_data:
                 if adsbdb_callsign_data.get('response') != 'unknown callsign' and adsbdb_callsign_data.get('response'):
                     store_data(flight, adsbdb_aircraft_data, adsbdb_callsign_data)
-                    logging.error('storing data!')
-                else:
-                    logging.error(f'no adsb data found: {flight} \n ADSBDB Aircraft: {adsbdb_aircraft_data} \n ADSBDB Callsign {adsbdb_callsign_data}')
+                #     logging.error('storing data!')
+                # else:
+                #     logging.error(f'no adsb data found: {flight} \n ADSBDB Aircraft: {adsbdb_aircraft_data} \n ADSBDB Callsign {adsbdb_callsign_data}')
 
         time.sleep(polling_time)
 

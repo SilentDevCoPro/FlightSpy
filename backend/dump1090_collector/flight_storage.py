@@ -4,47 +4,36 @@ import logging
 
 def get_or_create_aircraft(aircraft_info, flight_hex):
     """
-    Creates or retrieves the Aircraft by registration if possible,
-    otherwise by hex_id.
+    Retrieves and updates (or creates) the Aircraft record based on
+    registration if possible, otherwise by hex_id.
     """
-
     from .models import Aircraft
 
     registration = (aircraft_info.get('registration') or '').strip()
 
+    defaults = {
+        'hex_id': flight_hex,
+        'aircraft_type': aircraft_info.get('type', ''),
+        'icao_type': aircraft_info.get('icao_type', ''),
+        'manufacturer': aircraft_info.get('manufacturer', ''),
+        'mode_s': aircraft_info.get('mode_s', ''),
+        'registered_owner_country_iso_name': aircraft_info.get('registered_owner_country_iso_name', ''),
+        'registered_owner_country_name': aircraft_info.get('registered_owner_country_name', ''),
+        'registered_owner_operator_flag_code': aircraft_info.get('registered_owner_operator_flag_code', ''),
+        'registered_owner': aircraft_info.get('registered_owner', ''),
+        'url_photo': aircraft_info.get('url_photo', ''),
+        'url_photo_thumbnail': aircraft_info.get('url_photo_thumbnail', ''),
+    }
+
     if registration:
-        aircraft_obj, _ = Aircraft.objects.get_or_create(
+        aircraft_obj, _ = Aircraft.objects.update_or_create(
             registration=registration,
-            defaults={
-                'hex_id': flight_hex,
-                'aircraft_type': aircraft_info.get('type', ''),
-                'icao_type': aircraft_info.get('icao_type', ''),
-                'manufacturer': aircraft_info.get('manufacturer', ''),
-                'mode_s': aircraft_info.get('mode_s', ''),
-                'registered_owner_country_iso_name': aircraft_info.get('registered_owner_country_iso_name', ''),
-                'registered_owner_country_name': aircraft_info.get('registered_owner_country_name', ''),
-                'registered_owner_operator_flag_code': aircraft_info.get('registered_owner_operator_flag_code', ''),
-                'registered_owner': aircraft_info.get('registered_owner', ''),
-                'url_photo': aircraft_info.get('url_photo', ''),
-                'url_photo_thumbnail': aircraft_info.get('url_photo_thumbnail', ''),
-            }
+            defaults=defaults
         )
     else:
-        aircraft_obj, _ = Aircraft.objects.get_or_create(
+        aircraft_obj, _ = Aircraft.objects.update_or_create(
             hex_id=flight_hex,
-            defaults={
-                'registration': '',
-                'aircraft_type': aircraft_info.get('type', ''),
-                'icao_type': aircraft_info.get('icao_type', ''),
-                'manufacturer': aircraft_info.get('manufacturer', ''),
-                'mode_s': aircraft_info.get('mode_s', ''),
-                'registered_owner_country_iso_name': aircraft_info.get('registered_owner_country_iso_name', ''),
-                'registered_owner_country_name': aircraft_info.get('registered_owner_country_name', ''),
-                'registered_owner_operator_flag_code': aircraft_info.get('registered_owner_operator_flag_code', ''),
-                'registered_owner': aircraft_info.get('registered_owner', ''),
-                'url_photo': aircraft_info.get('url_photo', ''),
-                'url_photo_thumbnail': aircraft_info.get('url_photo_thumbnail', ''),
-            }
+            defaults={**defaults, 'registration': ''}
         )
 
     return aircraft_obj
