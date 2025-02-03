@@ -1,6 +1,7 @@
 from django.utils import timezone
 import logging
-
+from django.utils import timezone
+from .models import FlightData
 
 def get_or_create_aircraft(aircraft_info, flight_hex):
     """
@@ -51,7 +52,6 @@ def get_or_create_airline(airline_info):
     airline_icao = airline_info.get('icao', '')
     airline_iata = airline_info.get('iata', '')
 
-    # Try to filter existing Airline objects matching the provided icao and iata.
     qs = Airline.objects.filter(icao=airline_icao, iata=airline_iata)
     if qs.exists():
         if qs.count() > 1:
@@ -62,7 +62,6 @@ def get_or_create_airline(airline_info):
             )
         return qs.first()
     else:
-        # No matching record exists, so create a new one.
         airline_obj = Airline.objects.create(
             icao=airline_icao,
             iata=airline_iata,
@@ -98,67 +97,101 @@ def get_or_create_airport(airport_info):
         municipality=airport_info.get('municipality', ''),
     )
 
+def extract_aircraft_info(adsbdb_aircraft_data):
+    """
+    Returns a dictionary with the aircraft details extracted from the ADSBDB aircraft data.
+    If the data is missing or invalid, returns an empty dict.
+    """
+    if not isinstance(adsbdb_aircraft_data, dict):
+        logging.error("adsbdb_aircraft_data is not a dict: %s", adsbdb_aircraft_data)
+        return {}
+
+    aircraft_response = adsbdb_aircraft_data.get('response')
+    if not isinstance(aircraft_response, dict):
+        if aircraft_response in (None, "unknown aircraft"):
+            logging.debug("Received aircraft response: %s", aircraft_response)
+            return {}
+        else:
+            logging.error("adsbdb_aircraft_data['response'] is not a dict: %s", aircraft_response)
+            return {}
+
+    return aircraft_response.get('aircraft', {})
+
+def extract_callsign_info(adsbdb_callsign_data):
+    """
+    Returns a dictionary with the callsign details extracted from the ADSBDB callsign data.
+    If the data is missing or invalid, returns an empty dict.
+    """
+    if not isinstance(adsbdb_callsign_data, dict):
+        logging.error("adsbdb_callsign_data is not a dict: %s", adsbdb_callsign_data)
+        return {}
+
+    callsign_response = adsbdb_callsign_data.get('response')
+    if not isinstance(callsign_response, dict):
+        if callsign_response in (None, "unknown callsign"):
+            logging.debug("Received callsign response: %s", callsign_response)
+            return {}
+        else:
+            logging.error("adsbdb_callsign_data['response'] is not a dict: %s", callsign_response)
+            return {}
+    return callsign_response
+
+# Helper to extract flight data from the flight dict.
+def extract_flight_data(flight):
+    """
+    Extracts the flight-related fields from the flight dictionary.
+    """
+    return {
+        "flight_hex": flight.get('hex', '').strip(),
+        "squawk": flight.get('squawk', 0),
+        "flight_callsign": flight.get('flight', '').strip(),
+        "lat": flight.get('lat', 0.0),
+        "lon": flight.get('lon', 0.0),
+        "valid_position": bool(flight.get('validposition', 0)),
+        "altitude": flight.get('altitude', 0),
+        "vertical_rate": flight.get('vert_rate', 0),
+        "track": flight.get('track', 0),
+        "valid_track": bool(flight.get('validtrack', 0)),
+        "speed_in_knots": flight.get('speed', 0),
+        "messages_received": flight.get('messages', 0),
+        "seen": flight.get('seen', 0),
+        "timestamp": timezone.now(),
+    }
 
 def store_data(flight, adsbdb_aircraft_data, adsbdb_callsign_data):
     """
-    Called from poll_dump1090, which passes:
-      - flight: dict from dump1090 (keys like 'hex', 'flight', 'lat', etc.)
-      - adsbdb_aircraft_data: data from fetch_adsbdbAircraftData(hex)
-      - adsbdb_callsign_data: data from fetch_adsbdbCallsignData(flight_code)
-
-    1. Extract the relevant parts.
-    2. Create or get the related models (Aircraft, Airline, Airport).
-    3. Create the FlightData entry with foreign keys.
+    Combines flight information with ADSBDB responses, creates or updates related models,
+    and finally creates a FlightData record.
     """
-    from .models import FlightData
-    
-    logging.debug("adsbdb_aircraft_data (type: %s): %s", type(adsbdb_aircraft_data), adsbdb_aircraft_data)
+    aircraft_info = extract_aircraft_info(adsbdb_aircraft_data)
+    callsign_info = extract_callsign_info(adsbdb_callsign_data)
 
-    if not isinstance(adsbdb_aircraft_data, dict) or 'response' not in adsbdb_aircraft_data:
-        logging.error("adsbdb_aircraft_data is not a valid dict with 'response': %s", adsbdb_aircraft_data)
-        aircraft_info = {}
-    else:
-        aircraft_info = adsbdb_aircraft_data.get('response', {}).get('aircraft', {})
-
-    callsign_info = adsbdb_callsign_data.get('response') or {}
     flightroute_info = callsign_info.get('flightroute') or {}
     airline_info = flightroute_info.get('airline', {}) or {}
     origin_info = flightroute_info.get('origin', {}) or {}
     destination_info = flightroute_info.get('destination', {}) or {}
-    flight_hex = flight.get('hex', '').strip()
-    squawk = flight.get('squawk', 0)
-    flight_callsign = flight.get('flight', '').strip()
-    lat = flight.get('lat', 0.0)
-    lon = flight.get('lon', 0.0)
-    valid_position = bool(flight.get('validposition', 0))
-    altitude = flight.get('altitude', 0)
-    vertical_rate = flight.get('vert_rate', 0)
-    track = flight.get('track', 0)
-    valid_track = bool(flight.get('validtrack', 0))
-    speed_in_knots = flight.get('speed', 0)
-    messages_received = flight.get('messages', 0)
-    seen = flight.get('seen', 0)
-    timestamp = timezone.now()
 
-    aircraft_obj = get_or_create_aircraft(aircraft_info, flight_hex)
+    flight_fields = extract_flight_data(flight)
+
+    aircraft_obj = get_or_create_aircraft(aircraft_info, flight_fields["flight_hex"])
     airline_obj = get_or_create_airline(airline_info)
     origin_airport = get_or_create_airport(origin_info)
     destination_airport = get_or_create_airport(destination_info)
-    
+
     flight_data = FlightData.objects.create(
-        squawk_code=squawk,
-        flight_callsign=flight_callsign,
-        latitude=lat,
-        longitude=lon,
-        valid_position=valid_position,
-        altitude=altitude,
-        vertical_rate=vertical_rate,
-        track=track,
-        valid_track=valid_track,
-        speed_in_knots=speed_in_knots,
-        messages_received=messages_received,
-        seen=seen,
-        timestamp=timestamp,
+        squawk_code=flight_fields["squawk"],
+        flight_callsign=flight_fields["flight_callsign"],
+        latitude=flight_fields["lat"],
+        longitude=flight_fields["lon"],
+        valid_position=flight_fields["valid_position"],
+        altitude=flight_fields["altitude"],
+        vertical_rate=flight_fields["vertical_rate"],
+        track=flight_fields["track"],
+        valid_track=flight_fields["valid_track"],
+        speed_in_knots=flight_fields["speed_in_knots"],
+        messages_received=flight_fields["messages_received"],
+        seen=flight_fields["seen"],
+        timestamp=flight_fields["timestamp"],
         aircraft=aircraft_obj,
         airline=airline_obj,
         origin_airport=origin_airport,
@@ -166,3 +199,6 @@ def store_data(flight, adsbdb_aircraft_data, adsbdb_callsign_data):
     )
 
     return flight_data
+
+
+
