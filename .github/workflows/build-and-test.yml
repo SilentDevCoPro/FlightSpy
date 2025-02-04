@@ -8,8 +8,21 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_DB: flightspy
+          POSTGRES_USER: flightspy
+          POSTGRES_PASSWORD: flightspy
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U flightspy" 
+          --health-interval 10s 
+          --health-timeout 5s 
+          --health-retries 5
     strategy:
       max-parallel: 4
       matrix:
@@ -44,7 +57,13 @@ jobs:
         max-line-length: 88
         exclude: migrations,venv
 
-#    - name: Run Tests
-#      run: |
-#        export DJANGO_SETTINGS_MODULE=backend.settings
-#        python backend/manage.py test
+    - name: Run Django Tests
+      env:
+        PGHOST: localhost
+        PGUSER: flightspy
+        PGDATABASE: flightspy
+        PGPASSWORD: flightspy
+        DATABASE_URL: postgres://flightspy:flightspy@localhost:5432/flightspy
+      run: |
+        python backend/manage.py migrate
+        python backend/manage.py test dump1090_collector.tests
