@@ -6,7 +6,8 @@ from django.db.models.functions import Trim
 
 from .models import FlightData, Aircraft, Airline, Airport
 from .serializers import FlightDataSerializer, AircraftSerializer, AirlineSerializer, AirportSerializer
-from .filters import FlightDataFilter  # Import the custom filter
+from .filters import FlightDataFilter
+
 
 class FlightDataViewSet(viewsets.ModelViewSet):
     queryset = FlightData.objects.all().order_by('timestamp')
@@ -47,13 +48,16 @@ class FlightDataViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(flight_data_qs, many=True)
         return Response(serializer.data)
 
+
 class AircraftViewSet(viewsets.ModelViewSet):
     queryset = Aircraft.objects.all()
     serializer_class = AircraftSerializer
 
+
 class AirlineViewSet(viewsets.ModelViewSet):
     queryset = Airline.objects.all()
     serializer_class = AirlineSerializer
+
 
 class AirportViewSet(viewsets.ModelViewSet):
     queryset = Airport.objects.all()

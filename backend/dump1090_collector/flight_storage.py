@@ -82,7 +82,6 @@ def get_or_create_aircraft(aircraft_info, flight_hex):
             return aircraft_obj
 
 
-
 def get_or_create_airline(airline_info):
     """
     Creates or retrieves the Airline based on icao + iata.
