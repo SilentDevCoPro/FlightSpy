@@ -114,7 +114,7 @@ docker-compose exec web python backend/manage.py flush
 docker-compose run --rm web python backend/manage.py test dump1090_collector.tests
 
 # Specific test case
-docker-compose run --rm web python backend/manage.py test dump1090_collector.tests.test_flight_storage
+docker-compose run --rm web python backend/manage.py test dump1090_collector.tests.example
 ```
 
 ---
