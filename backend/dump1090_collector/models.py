@@ -50,7 +50,7 @@ class FlightData(models.Model):
 
 
 class Aircraft(models.Model):
-    hex_id = models.CharField(max_length=6, unique=True)  # Or use 'mode_s' as unique
+    hex_id = models.CharField(max_length=6, unique=False)
     aircraft_type = models.CharField(max_length=50, blank=True, null=True)
     icao_type = models.CharField(max_length=50, blank=True, null=True)
     manufacturer = models.CharField(max_length=100, blank=True, null=True)
