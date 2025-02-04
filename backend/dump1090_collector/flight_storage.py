@@ -1,12 +1,13 @@
 from django.utils import timezone
 import logging
-from django.utils import timezone
 from .models import FlightData
+
 
 def get_or_create_aircraft(aircraft_info, flight_hex):
     """
-    Retrieves and updates (or creates) the Aircraft record based on
-    registration if possible, otherwise by hex_id.
+    Retrieves and updates (or creates) the Aircraft record based on registration if possible,
+    otherwise by hex_id. If multiple Aircraft objects are returned for the lookup, it selects
+    the first one and updates it.
     """
     from .models import Aircraft
 
@@ -27,17 +28,59 @@ def get_or_create_aircraft(aircraft_info, flight_hex):
     }
 
     if registration:
-        aircraft_obj, _ = Aircraft.objects.update_or_create(
-            registration=registration,
-            defaults=defaults
-        )
+        qs = Aircraft.objects.filter(registration=registration)
+        count = qs.count()
+        if count > 1:
+            import logging
+            logging.warning(
+                "Multiple Aircraft objects found for registration=%s. Using the first one.",
+                registration
+            )
+            aircraft_obj = qs.first()
+            for key, value in defaults.items():
+                setattr(aircraft_obj, key, value)
+            aircraft_obj.save()
+            return aircraft_obj
+        elif count == 1:
+            aircraft_obj, _ = Aircraft.objects.update_or_create(
+                registration=registration,
+                defaults=defaults
+            )
+            return aircraft_obj
+        else:
+            aircraft_obj, _ = Aircraft.objects.update_or_create(
+                registration=registration,
+                defaults=defaults
+            )
+            return aircraft_obj
     else:
-        aircraft_obj, _ = Aircraft.objects.update_or_create(
-            hex_id=flight_hex,
-            defaults={**defaults, 'registration': ''}
-        )
+        qs = Aircraft.objects.filter(hex_id=flight_hex)
+        count = qs.count()
+        if count > 1:
+            import logging
+            logging.warning(
+                "Multiple Aircraft objects found for hex_id=%s. Using the first one.",
+                flight_hex
+            )
+            aircraft_obj = qs.first()
+            for key, value in defaults.items():
+                setattr(aircraft_obj, key, value)
+            aircraft_obj.registration = ''
+            aircraft_obj.save()
+            return aircraft_obj
+        elif count == 1:
+            aircraft_obj, _ = Aircraft.objects.update_or_create(
+                hex_id=flight_hex,
+                defaults={**defaults, 'registration': ''}
+            )
+            return aircraft_obj
+        else:
+            aircraft_obj, _ = Aircraft.objects.update_or_create(
+                hex_id=flight_hex,
+                defaults={**defaults, 'registration': ''}
+            )
+            return aircraft_obj
 
-    return aircraft_obj
 
 
 def get_or_create_airline(airline_info):
@@ -97,6 +140,7 @@ def get_or_create_airport(airport_info):
         municipality=airport_info.get('municipality', ''),
     )
 
+
 def extract_aircraft_info(adsbdb_aircraft_data):
     """
     Returns a dictionary with the aircraft details extracted from the ADSBDB aircraft data.
@@ -117,6 +161,7 @@ def extract_aircraft_info(adsbdb_aircraft_data):
 
     return aircraft_response.get('aircraft', {})
 
+
 def extract_callsign_info(adsbdb_callsign_data):
     """
     Returns a dictionary with the callsign details extracted from the ADSBDB callsign data.
@@ -136,7 +181,7 @@ def extract_callsign_info(adsbdb_callsign_data):
             return {}
     return callsign_response
 
-# Helper to extract flight data from the flight dict.
+
 def extract_flight_data(flight):
     """
     Extracts the flight-related fields from the flight dictionary.
@@ -157,6 +202,7 @@ def extract_flight_data(flight):
         "seen": flight.get('seen', 0),
         "timestamp": timezone.now(),
     }
+
 
 def store_data(flight, adsbdb_aircraft_data, adsbdb_callsign_data):
     """
@@ -199,6 +245,3 @@ def store_data(flight, adsbdb_aircraft_data, adsbdb_callsign_data):
     )
 
     return flight_data
-
-
-

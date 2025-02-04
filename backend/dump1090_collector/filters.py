@@ -2,6 +2,7 @@ import django_filters
 from django.db.models.functions import Trim
 from .models import FlightData
 
+
 class FlightDataFilter(django_filters.FilterSet):
     flight_callsign = django_filters.CharFilter(method='filter_callsign')
 
