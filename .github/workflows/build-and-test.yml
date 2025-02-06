@@ -57,9 +57,17 @@ jobs:
         max-line-length: 88
         exclude: migrations,venv
 
-    - name: Set up database
+    - name: Set up environment variables
       run: |
-        python backend/manage.py migrate
+        echo "POSTGRES_DB=testdb" >> $GITHUB_ENV
+        echo "POSTGRES_USER=testuser" >> $GITHUB_ENV
+        echo "POSTGRES_PASSWORD=testpassword" >> $GITHUB_ENV
+        echo "POSTGRES_HOST=localhost" >> $GITHUB_ENV
+        echo "POSTGRES_PORT=5432" >> $GITHUB_ENV
+        echo "DEBUG=True" >> $GITHUB_ENV
+
+    - name: Run Migrations
+      run: python backend/manage.py migrate
+
     - name: Run Tests
-      run: |
-        python backend/manage.py test dump1090_collector
+      run: python backend/manage.py test dump1090_collector
