@@ -59,9 +59,9 @@ jobs:
 
     - name: Set up environment variables
       run: |
-        echo "POSTGRES_DB=testdb" >> $GITHUB_ENV
-        echo "POSTGRES_USER=testuser" >> $GITHUB_ENV
-        echo "POSTGRES_PASSWORD=testpassword" >> $GITHUB_ENV
+        echo "POSTGRES_DB=flightspy" >> $GITHUB_ENV
+        echo "POSTGRES_USER=flightspy" >> $GITHUB_ENV
+        echo "POSTGRES_PASSWORD=flightspy" >> $GITHUB_ENV
         echo "POSTGRES_HOST=localhost" >> $GITHUB_ENV
         echo "POSTGRES_PORT=5432" >> $GITHUB_ENV
         echo "DEBUG=True" >> $GITHUB_ENV
