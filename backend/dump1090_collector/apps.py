@@ -16,7 +16,7 @@ cache_ttl = getattr(settings, 'CACHE_TTL', 600)
 
 
 def poll_dump1090():
-    from dump1090_collector.flight_storage import store_data
+    from dump1090_collector.services.store_data import store_data
 
     while True:
         dump1090_data = fetch_dump1090_data()
