@@ -57,13 +57,9 @@ jobs:
         max-line-length: 88
         exclude: migrations,venv
 
-    - name: Run Django Tests
-      env:
-        PGHOST: localhost
-        PGUSER: flightspy
-        PGDATABASE: flightspy
-        PGPASSWORD: flightspy
-        DATABASE_URL: postgres://flightspy:flightspy@localhost:5432/flightspy
+    - name: Set up database
       run: |
-        python backend/manage.py migrate
-        python backend/manage.py test dump1090_collector.tests
+        python manage.py migrate
+    - name: Run Tests
+      run: |
+        python manage.py test dump1090_collector
