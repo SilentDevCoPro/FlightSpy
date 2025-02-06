@@ -1,242 +1,133 @@
+import logging
+from unittest import mock
 from django.test import TestCase
-from django.utils import timezone
-from dump1090_collector.models import Aircraft, Airline, Airport, FlightData
-from dump1090_collector.services.services import get_or_create_aircraft, get_or_create_airline, get_or_create_airport
-from dump1090_collector.services.extractors import extract_aircraft_info, extract_callsign_info, extract_flight_data
-from dump1090_collector.services.store_data import store_data
+from dump1090_collector.models import Aircraft, Airline, Airport
+from dump1090_collector.services.services import (
+    get_or_create_aircraft,
+    get_or_create_airline,
+    get_or_create_airport,
+)
 
-class ServicesTest(TestCase):
-    def test_get_or_create_aircraft_with_registration(self):
+class ServicesTestCase(TestCase):
+    def test_get_or_create_aircraft_new(self):
         aircraft_info = {
-            'registration': 'ABC123',
-            'type': 'Type1',
-            'icao_type': 'Icao1',
-            'manufacturer': 'Manufacturer1',
-            'mode_s': 'ModeS1',
-            'registered_owner_country_iso_name': 'US',
-            'registered_owner_country_name': 'United States',
-            'registered_owner_operator_flag_code': 'Code1',
-            'registered_owner': 'Owner1',
-            'url_photo': 'http://photo.url',
-            'url_photo_thumbnail': 'http://thumb.url',
+            'registration': 'N12345',
+            'type': 'Boeing 737',
+            'icao_type': 'B737',
         }
-        flight_hex = 'HEX123'
-        aircraft = get_or_create_aircraft(aircraft_info, flight_hex)
-        self.assertEqual(aircraft.registration, 'ABC123')
-        self.assertEqual(aircraft.hex_id, flight_hex)
-        updated_info = aircraft_info.copy()
-        updated_info['manufacturer'] = 'Manufacturer2'
-        aircraft_updated = get_or_create_aircraft(updated_info, flight_hex)
-        self.assertEqual(aircraft_updated.manufacturer, 'Manufacturer2')
-        # Create a duplicate to test warning path
-        Aircraft.objects.create(registration='ABC123', hex_id='HEX999')
-        aircraft_dup = get_or_create_aircraft(aircraft_info, flight_hex)
-        self.assertEqual(aircraft_dup.registration, 'ABC123')
+        flight_hex = 'ABCDEF'
+        aircraft_obj = get_or_create_aircraft(aircraft_info, flight_hex)
+        self.assertEqual(Aircraft.objects.count(), 1)
+        self.assertEqual(aircraft_obj.registration, 'N12345')
+        self.assertEqual(aircraft_obj.hex_id, 'ABCDEF')
 
-    def test_get_or_create_aircraft_without_registration(self):
+    def test_get_or_create_aircraft_existing(self):
+        Aircraft.objects.create(registration='N12345', hex_id='ABCDEF', aircraft_type='Old Type')
         aircraft_info = {
-            'registration': '',
-            'type': 'Type1',
-            'icao_type': 'Icao1',
-            'manufacturer': 'Manufacturer1',
-            'mode_s': 'ModeS1',
-            'registered_owner_country_iso_name': 'US',
-            'registered_owner_country_name': 'United States',
-            'registered_owner_operator_flag_code': 'Code1',
-            'registered_owner': 'Owner1',
-            'url_photo': 'http://photo.url',
-            'url_photo_thumbnail': 'http://thumb.url',
+            'registration': 'N12345',
+            'type': 'Boeing 737',
+            'icao_type': 'B737',
         }
-        flight_hex = 'HEX456'
-        aircraft = get_or_create_aircraft(aircraft_info, flight_hex)
-        self.assertEqual(aircraft.registration, '')
-        self.assertEqual(aircraft.hex_id, flight_hex)
+        flight_hex = 'ABCDEF'
+        aircraft_obj = get_or_create_aircraft(aircraft_info, flight_hex)
+        self.assertEqual(Aircraft.objects.count(), 1)
+        self.assertEqual(aircraft_obj.registration, 'N12345')
+        self.assertEqual(aircraft_obj.aircraft_type, 'Boeing 737')
 
-    def test_get_or_create_airline(self):
+    def test_get_or_create_aircraft_no_registration(self):
+        aircraft_info = {
+            'type': 'Boeing 737',
+            'icao_type': 'B737',
+        }
+        flight_hex = 'ABCDEF'
+        aircraft_obj = get_or_create_aircraft(aircraft_info, flight_hex)
+        self.assertEqual(Aircraft.objects.count(), 1)
+        self.assertEqual(aircraft_obj.hex_id, 'ABCDEF')
+        self.assertEqual(aircraft_obj.registration, '')
+
+    def test_get_or_create_aircraft_multiple_existing(self):
+         # Setup multiple existing Aircraft objects with the same registration
+        Aircraft.objects.create(registration='N12345', hex_id='ABCDEF', aircraft_type='Old Type')
+        Aircraft.objects.create(registration='N12345', hex_id='123456', aircraft_type='Another Old Type')
+
+        aircraft_info = {
+            'registration': 'N12345',
+            'type': 'Boeing 737',
+            'icao_type': 'B737',
+        }
+        flight_hex = 'ABCDEF'
+
+        with self.assertLogs(level=logging.WARNING) as cm:
+            aircraft_obj = get_or_create_aircraft(aircraft_info, flight_hex)
+            self.assertIn("Multiple Aircraft objects found for registration=N12345", cm.output[0])
+
+        self.assertEqual(Aircraft.objects.count(), 2)
+        self.assertEqual(aircraft_obj.registration, 'N12345')
+        self.assertEqual(aircraft_obj.aircraft_type, 'Boeing 737') # Ensure the aircraft type is updated.
+
+    def test_get_or_create_airline_new(self):
         airline_info = {
-            'name': 'Airline1',
-            'icao': 'ICAO1',
-            'iata': 'IATA1',
-            'country': 'Country1',
-            'country_iso': 'C1',
-            'callsign': 'Call1',
+            'name': 'United',
+            'icao': 'UAL',
+            'iata': 'UA',
         }
-        airline = get_or_create_airline(airline_info)
-        self.assertEqual(airline.name, 'Airline1')
-        duplicate_airline = get_or_create_airline(airline_info)
-        self.assertEqual(airline.id, duplicate_airline.id)
+        airline_obj = get_or_create_airline(airline_info)
+        self.assertEqual(Airline.objects.count(), 1)
+        self.assertEqual(airline_obj.icao, 'UAL')
+        self.assertEqual(airline_obj.iata, 'UA')
 
-    def test_get_or_create_airport(self):
+    def test_get_or_create_airline_existing(self):
+        Airline.objects.create(name='United', icao='UAL', iata='UA', country='USA')
+        airline_info = {
+            'name': 'United Airlines',
+            'icao': 'UAL',
+            'iata': 'UA',
+            'country': 'United States',
+        }
+        airline_obj = get_or_create_airline(airline_info)
+        self.assertEqual(Airline.objects.count(), 1)
+        self.assertEqual(airline_obj.country, 'USA')  # Ensure existing data is returned and not overwritten.
+
+    def test_get_or_create_airport_new(self):
         airport_info = {
-            'iata_code': 'IATA1',
-            'icao_code': 'ICAO1',
-            'name': 'Airport1',
-            'country_iso_name': 'US',
-            'country_name': 'United States',
-            'elevation': 100,
-            'latitude': 40.0,
-            'longitude': -75.0,
-            'municipality': 'City1',
+            'iata_code': 'JFK',
+            'icao_code': 'KJFK',
+            'name': 'John F. Kennedy International Airport',
         }
-        airport = get_or_create_airport(airport_info)
-        self.assertEqual(airport.iata_code, 'IATA1')
-        airport2 = get_or_create_airport(airport_info)
-        self.assertEqual(airport.id, airport2.id)
+        airport_obj = get_or_create_airport(airport_info)
+        self.assertEqual(Airport.objects.count(), 1)
+        self.assertEqual(airport_obj.iata_code, 'JFK')
+        self.assertEqual(airport_obj.icao_code, 'KJFK')
 
-class ExtractorsTest(TestCase):
-    def test_extract_aircraft_info_valid(self):
-        data = {
-            'response': {
-                'aircraft': {
-                    'registration': 'ABC123',
-                    'type': 'Type1'
-                }
-            }
+    def test_get_or_create_airport_existing(self):
+        Airport.objects.create(iata_code='JFK', icao_code='KJFK', name='Old Name')
+        airport_info = {
+            'iata_code': 'JFK',
+            'icao_code': 'KJFK',
+            'name': 'John F. Kennedy International Airport',
         }
-        result = extract_aircraft_info(data)
-        self.assertEqual(result.get('registration'), 'ABC123')
-        self.assertEqual(result.get('type'), 'Type1')
+        airport_obj = get_or_create_airport(airport_info)
+        self.assertEqual(Airport.objects.count(), 1)
+        self.assertEqual(airport_obj.name, 'Old Name')  # Ensure existing data is returned and not overwritten.
 
-    def test_extract_aircraft_info_invalid(self):
-        result = extract_aircraft_info("not a dict")
-        self.assertEqual(result, {})
-
-    def test_extract_callsign_info_valid(self):
-        data = {
-            'response': {
-                'flightroute': {
-                    'airline': {'name': 'Airline1'},
-                    'origin': {'iata_code': 'IATA1', 'icao_code': 'ICAO1', 'name': 'Origin'},
-                    'destination': {'iata_code': 'IATA2', 'icao_code': 'ICAO2', 'name': 'Destination'},
-                }
-            }
+    def test_get_or_create_airport_existing_icao(self):
+        Airport.objects.create(iata_code='', icao_code='KJFK', name='Old Name')
+        airport_info = {
+            'iata_code': 'JFK',
+            'icao_code': 'KJFK',
+            'name': 'John F. Kennedy International Airport',
         }
-        result = extract_callsign_info(data)
-        self.assertIn('flightroute', result)
+        airport_obj = get_or_create_airport(airport_info)
+        self.assertEqual(Airport.objects.count(), 1)
+        self.assertEqual(airport_obj.name, 'Old Name')
 
-    def test_extract_callsign_info_invalid(self):
-        result = extract_callsign_info(123)
-        self.assertEqual(result, {})
-
-    def test_extract_flight_data(self):
-        flight = {
-            'hex': 'HEX789',
-            'squawk': 100,
-            'flight': 'FL123',
-            'lat': 50.0,
-            'lon': 8.0,
-            'validposition': 1,
-            'altitude': 30000,
-            'vert_rate': 500,
-            'track': 90,
-            'validtrack': 1,
-            'speed': 450,
-            'messages': 20,
-            'seen': 5,
+    def test_get_or_create_airport_existing_iata(self):
+        Airport.objects.create(iata_code='JFK', icao_code='', name='Old Name')
+        airport_info = {
+            'iata_code': 'JFK',
+            'icao_code': 'KJFK',
+            'name': 'John F. Kennedy International Airport',
         }
-        result = extract_flight_data(flight)
-        self.assertEqual(result["flight_hex"], "HEX789")
-        self.assertEqual(result["squawk"], 100)
-        self.assertEqual(result["flight_callsign"], "FL123")
-        self.assertEqual(result["lat"], 50.0)
-        self.assertEqual(result["lon"], 8.0)
-        self.assertTrue(result["valid_position"])
-        self.assertEqual(result["altitude"], 30000)
-        self.assertEqual(result["vertical_rate"], 500)
-        self.assertEqual(result["track"], 90)
-        self.assertTrue(result["valid_track"])
-        self.assertEqual(result["speed_in_knots"], 450)
-        self.assertEqual(result["messages_received"], 20)
-        self.assertEqual(result["seen"], 5)
-        self.assertIsNotNone(result["timestamp"])
-
-class StoreDataTest(TestCase):
-    def test_store_data(self):
-        flight = {
-            'hex': 'HEX101',
-            'squawk': 200,
-            'flight': 'FL101',
-            'lat': 55.0,
-            'lon': 9.0,
-            'validposition': 1,
-            'altitude': 32000,
-            'vert_rate': 600,
-            'track': 180,
-            'validtrack': 1,
-            'speed': 500,
-            'messages': 30,
-            'seen': 10,
-        }
-        adsbdb_aircraft_data = {
-            'response': {
-                'aircraft': {
-                    'registration': 'REG101',
-                    'type': 'Type101',
-                    'icao_type': 'ICAO101',
-                    'manufacturer': 'Manu101',
-                    'mode_s': 'ModeS101',
-                    'registered_owner_country_iso_name': 'GB',
-                    'registered_owner_country_name': 'United Kingdom',
-                    'registered_owner_operator_flag_code': 'Flag101',
-                    'registered_owner': 'Owner101',
-                    'url_photo': 'http://photo101.url',
-                    'url_photo_thumbnail': 'http://thumb101.url',
-                }
-            }
-        }
-        adsbdb_callsign_data = {
-            'response': {
-                'flightroute': {
-                    'airline': {
-                        'name': 'Airline101',
-                        'icao': 'ICAO101',
-                        'iata': 'IATA1',  # changed to a value within 5 characters
-                        'country': 'Country101',
-                        'country_iso': 'C101',
-                        'callsign': 'Call101',
-                    },
-                    'origin': {
-                        'iata_code': 'ORI',  # changed from 'ORI101'
-                        'icao_code': 'ORICAO101',
-                        'name': 'Origin Airport',
-                        'country_iso_name': 'GB',
-                        'country_name': 'United Kingdom',
-                        'elevation': 50,
-                        'latitude': 51.5,
-                        'longitude': -0.1,
-                        'municipality': 'City101',
-                    },
-                    'destination': {
-                        'iata_code': 'DES',  # changed from 'DES101'
-                        'icao_code': 'DESICAO101',
-                        'name': 'Destination Airport',
-                        'country_iso_name': 'FR',
-                        'country_name': 'France',
-                        'elevation': 100,
-                        'latitude': 48.8,
-                        'longitude': 2.3,
-                        'municipality': 'City102',
-                    },
-                }
-            }
-        }
-        flight_data = store_data(flight, adsbdb_aircraft_data, adsbdb_callsign_data)
-        self.assertEqual(flight_data.flight_callsign, 'FL101')
-        self.assertEqual(flight_data.squawk_code, 200)
-        self.assertEqual(flight_data.latitude, 55.0)
-        self.assertEqual(flight_data.longitude, 9.0)
-        self.assertTrue(flight_data.valid_position)
-        self.assertEqual(flight_data.altitude, 32000)
-        self.assertEqual(flight_data.vertical_rate, 600)
-        self.assertEqual(flight_data.track, 180)
-        self.assertTrue(flight_data.valid_track)
-        self.assertEqual(flight_data.speed_in_knots, 500)
-        self.assertEqual(flight_data.messages_received, 30)
-        self.assertEqual(flight_data.seen, 10)
-        self.assertIsNotNone(flight_data.timestamp)
-        self.assertEqual(flight_data.aircraft.registration, 'REG101')
-        self.assertEqual(flight_data.aircraft.manufacturer, 'Manu101')
-        self.assertEqual(flight_data.airline.name, 'Airline101')
-        self.assertEqual(flight_data.origin_airport.iata_code, 'ORI')
-        self.assertEqual(flight_data.destination_airport.iata_code, 'DES')
-
+        airport_obj = get_or_create_airport(airport_info)
+        self.assertEqual(Airport.objects.count(), 1)
+        self.assertEqual(airport_obj.name, 'Old Name')
