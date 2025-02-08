@@ -1,6 +1,7 @@
 import logging
 from ..models import Aircraft, Airline, Airport
 
+
 def get_or_create_aircraft(aircraft_info, flight_hex):
     registration = (aircraft_info.get('registration') or '').strip()
     defaults = {
@@ -50,6 +51,7 @@ def get_or_create_aircraft(aircraft_info, flight_hex):
             )
             return aircraft_obj
 
+
 def get_or_create_airline(airline_info):
     airline_name = airline_info.get('name', '')
     airline_icao = airline_info.get('icao', '')
@@ -69,6 +71,7 @@ def get_or_create_airline(airline_info):
             callsign=airline_info.get('callsign', '').strip(),
         )
         return airline_obj
+
 
 def get_or_create_airport(airport_info):
     from django.db.models import Q

@@ -2,6 +2,7 @@ from ..models import FlightData
 from .services import get_or_create_aircraft, get_or_create_airline, get_or_create_airport
 from .extractors import extract_aircraft_info, extract_callsign_info, extract_flight_data
 
+
 def store_data(flight, adsbdb_aircraft_data, adsbdb_callsign_data):
     aircraft_info = extract_aircraft_info(adsbdb_aircraft_data)
     callsign_info = extract_callsign_info(adsbdb_callsign_data)

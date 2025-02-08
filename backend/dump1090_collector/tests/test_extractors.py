@@ -1,5 +1,3 @@
-import logging
-from unittest import mock
 from django.test import TestCase
 from django.utils import timezone
 from dump1090_collector.services.extractors import (
@@ -7,6 +5,7 @@ from dump1090_collector.services.extractors import (
     extract_callsign_info,
     extract_flight_data,
 )
+
 
 class ExtractorsTestCase(TestCase):
     def test_extract_aircraft_info_valid_data(self):
@@ -88,4 +87,3 @@ class ExtractorsTestCase(TestCase):
         self.assertEqual(extracted_data['messages_received'], 50)
         self.assertEqual(extracted_data['seen'], 10)
         self.assertIsInstance(extracted_data['timestamp'], timezone.datetime)
-

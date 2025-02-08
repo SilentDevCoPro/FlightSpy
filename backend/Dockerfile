@@ -1,22 +1,29 @@
+# In your backend/Dockerfile
 FROM python:3.11-slim
 
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+# Create system user and group first
+RUN groupadd -r celeryuser && \
+    useradd -r -g celeryuser celeryuser
 
-WORKDIR /app
+# Install dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends gcc python3-dev && \
+    rm -rf /var/lib/apt/lists/*
 
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends gcc libpq-dev \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+WORKDIR /app/backend
 
+# Copy requirements first for caching
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Copy application code
 COPY . .
 
-RUN python manage.py collectstatic --noinput
+# Set ownership BEFORE switching user
+RUN chown -R celeryuser:celeryuser /app
 
-EXPOSE 8000
+# Switch to non-root user
+USER celeryuser
 
-CMD ["gunicorn", "backend.wsgi:application", "--bind", "0.0.0.0:8000"]
+# Default command (can be overridden in compose)
+CMD ["celery", "-A", "backend", "worker", "-l", "info"]
