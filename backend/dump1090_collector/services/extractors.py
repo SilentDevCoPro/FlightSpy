@@ -1,6 +1,7 @@
 import logging
 from django.utils import timezone
 
+
 def extract_aircraft_info(adsbdb_aircraft_data):
     if not isinstance(adsbdb_aircraft_data, dict):
         logging.error("adsbdb_aircraft_data is not a dict: %s", adsbdb_aircraft_data)
@@ -15,6 +16,7 @@ def extract_aircraft_info(adsbdb_aircraft_data):
             return {}
     return aircraft_response.get('aircraft', {})
 
+
 def extract_callsign_info(adsbdb_callsign_data):
     if not isinstance(adsbdb_callsign_data, dict):
         logging.error("adsbdb_callsign_data is not a dict: %s", adsbdb_callsign_data)
@@ -28,6 +30,7 @@ def extract_callsign_info(adsbdb_callsign_data):
             logging.error("adsbdb_callsign_data['response'] is not a dict: %s", callsign_response)
             return {}
     return callsign_response
+
 
 def extract_flight_data(flight):
     return {

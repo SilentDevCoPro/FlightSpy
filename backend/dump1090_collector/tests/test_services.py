@@ -1,5 +1,4 @@
 import logging
-from unittest import mock
 from django.test import TestCase
 from dump1090_collector.models import Aircraft, Airline, Airport
 from dump1090_collector.services.services import (
@@ -7,6 +6,7 @@ from dump1090_collector.services.services import (
     get_or_create_airline,
     get_or_create_airport,
 )
+
 
 class ServicesTestCase(TestCase):
     def test_get_or_create_aircraft_new(self):
@@ -46,7 +46,7 @@ class ServicesTestCase(TestCase):
         self.assertEqual(aircraft_obj.registration, '')
 
     def test_get_or_create_aircraft_multiple_existing(self):
-         # Setup multiple existing Aircraft objects with the same registration
+        # Setup multiple existing Aircraft objects with the same registration
         Aircraft.objects.create(registration='N12345', hex_id='ABCDEF', aircraft_type='Old Type')
         Aircraft.objects.create(registration='N12345', hex_id='123456', aircraft_type='Another Old Type')
 
@@ -63,7 +63,7 @@ class ServicesTestCase(TestCase):
 
         self.assertEqual(Aircraft.objects.count(), 2)
         self.assertEqual(aircraft_obj.registration, 'N12345')
-        self.assertEqual(aircraft_obj.aircraft_type, 'Boeing 737') # Ensure the aircraft type is updated.
+        self.assertEqual(aircraft_obj.aircraft_type, 'Boeing 737')
 
     def test_get_or_create_airline_new(self):
         airline_info = {

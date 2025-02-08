@@ -22,7 +22,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-)w6mj43%0k%wq%7k@%vscpt%@w07r(q4gi5d5j_ow60tv90kr$'  # noqa: E501
+SECRET_KEY = 'django-insecure-)w6mj43%0k%wq%7k@%vscpt%@w07r(q4gi5d5j_ow60tv90kr$'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -31,6 +31,13 @@ ALLOWED_HOSTS = []
 
 DUMP1090_POLLING_TIME = 10
 CACHE_TTL = 600
+
+CELERY_ACCEPT_CONTENT = ['application/json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'UTC'
+CELERY_BROKER_URL = f"redis://{os.environ.get('REDIS_HOST', 'redis')}:{os.environ.get('REDIS_PORT', 6379)}/0"
+CELERY_RESULT_BACKEND = f"redis://{os.environ.get('REDIS_HOST', 'redis')}:{os.environ.get('REDIS_PORT', 6379)}/0"
 
 
 # Application definition
@@ -44,7 +51,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'corsheaders',
-    'dump1090_collector.apps.Dump1090Config'
+    'dump1090_collector'
 ]
 
 REST_FRAMEWORK = {

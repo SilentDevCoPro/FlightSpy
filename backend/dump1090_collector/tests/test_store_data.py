@@ -56,7 +56,7 @@ class StoreDataTestCase(TestCase):
         mock_extract_flight_data.assert_called_once_with(flight)
         mock_get_or_create_aircraft.assert_called_once_with({'registration': 'N12345', 'type': 'Boeing 737'}, 'ABCDEF')
         mock_get_or_create_airline.assert_called_once_with({'name': 'United', 'icao': 'UAL', 'iata': 'UA'})
-        self.assertEqual(mock_get_or_create_airport.call_count, 2) # called for origin and destination
+        self.assertEqual(mock_get_or_create_airport.call_count, 2)
         mock_get_or_create_airport.assert_has_calls([
             mock.call({'iata_code': 'JFK'}),
             mock.call({'iata_code': 'LAX'})
