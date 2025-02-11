@@ -1,66 +1,70 @@
 from celery import shared_task
 from django.conf import settings
 from django.core.cache import cache
+from contextlib import suppress
+from functools import partial
+from concurrent.futures import ThreadPoolExecutor
 import json
+import logging
+from typing import Optional, Dict, Any
+
 from dump1090_collector.fetch_helper import (
     fetch_adsbdbAircraftData,
     fetch_adsbdbCallsignData,
     fetch_dump1090_data,
 )
 from dump1090_collector.services.store_data import store_data
-import logging
-import time
-import os
 
-polling_time = getattr(settings, 'DUMP1090_POLLING_TIME', 10)
-cache_ttl = getattr(settings, 'CACHE_TTL', 600)
+logger = logging.getLogger(__name__)
+
+# Configuration
+POLLING_TIME = getattr(settings, 'DUMP1090_POLLING_TIME', 10)
+CACHE_TTL = getattr(settings, 'CACHE_TTL', 600)
+MAX_WORKERS = getattr(settings, 'DUMP1090_MAX_WORKERS', 4)
 
 
-@shared_task(queue='dump1090_queue')
-def poll_dump1090_task():
-    time.sleep(10)
-    if not os.environ.get('CELERY_WORKER_RUNNING'):
-        logging.error("Task called in non-Celery context - ignoring")
-        return
-
-    while True:
+def get_cached_data(key: str, fetch_fn: callable) -> Optional[Dict[str, Any]]:
+    """Helper function to handle cache with automatic fetch fallback."""
+    cached_data = cache.get(key)
+    if cached_data:
         try:
-            dump1090_data = fetch_dump1090_data()
-            for flight in dump1090_data:
-                adsbdb_aircraft_data = {}
-                adsbdb_callsign_data = {}
+            return json.loads(cached_data)
+        except json.JSONDecodeError as e:
+            logger.warning("Cache decode error for key %s: %s", key, e)
+    
+    fresh_data = fetch_fn(key)
+    if fresh_data:
+        cache.set(key, json.dumps(fresh_data), timeout=CACHE_TTL)
+    return fresh_data
 
-                if flight.get('hex'):
-                    flight_hex = flight['hex']
-                    cached_aircraft_data = cache.get(flight_hex)
 
-                    if cached_aircraft_data:
-                        try:
-                            adsbdb_aircraft_data = json.loads(cached_aircraft_data)
-                        except Exception as e:
-                            logging.error("Error decoding cached aircraft data for hex %s: %s", flight_hex, e)
-                            adsbdb_aircraft_data = {}
-                    else:
-                        adsbdb_aircraft_data = fetch_adsbdbAircraftData(flight_hex)
-                        cache.set(flight_hex, json.dumps(adsbdb_aircraft_data), timeout=cache_ttl)
+def process_flight(flight: Dict[str, Any]) -> None:
+    """Process individual flight data with proper error isolation."""
+    with suppress(Exception):  # Prevent one bad flight from breaking others
+        hex_code = flight.get('hex')
+        callsign = flight.get('flight')
 
-                if flight.get('flight'):
-                    flight_code = flight['flight']
-                    cached_callsign_data = cache.get(flight_code)
+        aircraft_data = get_cached_data(hex_code, fetch_adsbdbAircraftData) if hex_code else {}
+        callsign_data = get_cached_data(callsign, fetch_adsbdbCallsignData) if callsign else {}
 
-                    if cached_callsign_data:
-                        try:
-                            adsbdb_callsign_data = json.loads(cached_callsign_data)
-                        except Exception as e:
-                            logging.error("Error decoding cached callsign data for flight %s: %s", flight_code, e)
-                            adsbdb_callsign_data = {}
-                    else:
-                        adsbdb_callsign_data = fetch_adsbdbCallsignData(flight_code)
-                        cache.set(flight_code, json.dumps(adsbdb_callsign_data), timeout=cache_ttl)
+        store_data(flight, aircraft_data, callsign_data)
 
-                store_data(flight, adsbdb_aircraft_data, adsbdb_callsign_data)
 
-            time.sleep(polling_time)
-        except Exception as e:
-            logging.error("Critical error in poll_dump1090_task: %s", e)
-            time.sleep(30)
+@shared_task(
+    queue='dump1090_queue',
+    autoretry_for=(Exception,),
+    retry_backoff=30,
+    retry_backoff_max=300,
+    max_retries=3
+)
+def poll_dump1090_task():
+    """Periodic task to collect and process dump1090 data."""
+    try:
+        # Fetch and process flights in parallel
+        flights = fetch_dump1090_data()
+        with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+            list(executor.map(process_flight, flights))
+
+    except Exception as e:
+        logger.critical("Polling task failed: %s", e, exc_info=True)
+        raise  # Enable Celery auto-retry

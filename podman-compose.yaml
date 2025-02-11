@@ -45,11 +45,11 @@ services:
       timeout: 5s
       retries: 5
 
-  celery:
+  celery-worker:
     build: ./backend
-    container_name: flightspy_celery
+    container_name: flightspy_celery_worker
     working_dir: /app/backend
-    command: celery -A backend worker -l ERROR -Q dump1090_queue
+    command: celery -A backend worker -l INFO -Q dump1090_queue
     environment:
       - DJANGO_SETTINGS_MODULE=backend.settings
       - PYTHONPATH=/app/backend
@@ -60,7 +60,28 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - CELERY_WORKER_RUNNING=1
-      - WORKER_MAIN_PID=1
+    depends_on:
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+    volumes:
+      - .:/app:z
+
+  celery-beat:
+    build: ./backend
+    container_name: flightspy_celery_beat
+    working_dir: /app/backend
+    command: celery -A backend beat -l INFO --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    environment:
+      - DJANGO_SETTINGS_MODULE=backend.settings
+      - PYTHONPATH=/app/backend
+      - POSTGRES_HOST=db
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     depends_on:
       redis:
         condition: service_healthy
