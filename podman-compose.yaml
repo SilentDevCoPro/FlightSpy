@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    container_name: my_postgres_db
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build: ./backend
+    container_name: flightspy_backend
+    command: python manage.py runserver 0.0.0.0:8000
+    working_dir: /app/backend
+    environment:
+      - DJANGO_SETTINGS_MODULE=backend.settings
+      - PYTHONPATH=/app/backend
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  redis:
+    image: redis:7.0-alpine
+    container_name: flightspy_redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  celery:
+    build: ./backend
+    container_name: flightspy_celery
+    working_dir: /app/backend
+    command: celery -A backend worker -l ERROR -Q dump1090_queue
+    environment:
+      - DJANGO_SETTINGS_MODULE=backend.settings
+      - PYTHONPATH=/app/backend
+      - POSTGRES_HOST=db
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - CELERY_WORKER_RUNNING=1
+      - WORKER_MAIN_PID=1
+    depends_on:
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+    volumes:
+      - .:/app:z
+
+volumes:
+  postgres_data:
