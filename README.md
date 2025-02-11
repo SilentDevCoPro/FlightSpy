@@ -31,8 +31,8 @@ FlightSpy is a sophisticated aircraft monitoring solution that combines ADSB rec
 1. **Hardware & Data Source**:
    - ADSB receiver feeding data to [Dump1090](https://github.com/flightaware/dump1090).
 2. **Software Requirements**:
-   - [![Docker](https://img.shields.io/badge/Docker-27.3.1-blue.svg)](https://www.docker.com/) Engine installed and running.
-   - [![Docker Compose](https://img.shields.io/badge/Docker_Compose-v2.30.3--desktop.1-blue.svg)](https://docs.docker.com/compose/) for container orchestration.
+   - [![Docker](https://img.shields.io/badge/Docker-27.3.1-blue.svg)](https://podman.io/docs/installation) Engine installed and running.
+   - ```pip3 install podman-compose```  For container orchestration
 
 ---
 
@@ -54,10 +54,16 @@ POSTGRES_PASSWORD=secret_password
 POSTGRES_HOST=db
 POSTGRES_PORT=5432
 ```
-
-4. Start services from root directory
+4. Windows machines may need to apply this fix to get podman-compose working.
 ```
-docker-compose up --build -d
+C:\Users\User\Documents\GitHub\FlightSpy\.venv\Lib\site-packages\podman_compose.py
+Comment out this line:
+# loop.add_signal_handler(signal.SIGINT, lambda: [t.cancel("User exit") for t in tasks])
+```
+
+5. Start services from root directory
+```
+podman-compose up --build -d
 ```
 
 ---
@@ -99,11 +105,11 @@ before making any code changes [ADSBDB Website](https://www.adsbdb.com/).
 ### 🗄️ Database Management
 ```
 # Apply migrations
-docker-compose exec web python backend/manage.py makemigrations dump1090_collector
-docker-compose exec web python backend/manage.py migrate
+podman exec web python manage.py makemigrations dump1090_collector
+podman exec web python manage.py migrate
 
 # Reset database
-docker-compose exec web python backend/manage.py flush
+podman exec web python backend/manage.py flush
 ```
 
 ---
@@ -111,10 +117,10 @@ docker-compose exec web python backend/manage.py flush
 ### 🧪 Testing
 ```
 # Run all tests
-docker-compose run --rm web python backend/manage.py test dump1090_collector.tests
+podman run --rm web python backend/manage.py test dump1090_collector.tests
 
 # Specific test case
-docker-compose run --rm web python backend/manage.py test dump1090_collector.tests.example
+podman run --rm web python backend/manage.py test dump1090_collector.tests.example
 ```
 
 ---
