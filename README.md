@@ -3,7 +3,7 @@
 [![Django](https://img.shields.io/badge/Django-5.1.5-brightgreen.svg)](https://www.djangoproject.com/)
 [![Docker](https://img.shields.io/badge/Docker-27.3.1-blue.svg)](https://www.docker.com/)
 [![Postgres](https://img.shields.io/badge/PostgreSQL-15.0-blue)](https://www.postgresql.org/)
-[![Docker Compose](https://img.shields.io/badge/Docker_Compose-v2.30.3--desktop.1-blue.svg)](https://docs.docker.com/compose/)
+[![Podman Compose](https://img.shields.io/badge/Podman_Compose-v1.3.0-blue.svg)](https://github.com/containers/podman-compose)
 [![Redis](https://img.shields.io/badge/Redis-7.0--alpine-red.svg)](https://redis.io/)
 
 **Real-time Aircraft Tracking & Data Enrichment System**
@@ -31,7 +31,7 @@ FlightSpy is a sophisticated aircraft monitoring solution that combines ADSB rec
 1. **Hardware & Data Source**:
    - ADSB receiver feeding data to [Dump1090](https://github.com/flightaware/dump1090).
 2. **Software Requirements**:
-   - [![Docker](https://img.shields.io/badge/Docker-27.3.1-blue.svg)](https://podman.io/docs/installation) Engine installed and running.
+   - [![Podman Compose](https://img.shields.io/badge/Podman_Compose-v1.3.0-blue.svg)](https://github.com/containers/podman-compose) Engine installed and running.
    - ```pip3 install podman-compose```  For container orchestration
 
 ---
