@@ -8,6 +8,8 @@ RUN groupadd -r celeryuser && \
 # Install dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends gcc python3-dev && \
+    apt-get install -y libpq-dev gcc python3-dev && \
+    apt-get install -y iputils-ping && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app/backend
