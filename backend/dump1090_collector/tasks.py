@@ -17,7 +17,6 @@ from dump1090_collector.services.store_data import store_data
 
 logger = logging.getLogger(__name__)
 
-# Configuration
 POLLING_TIME = getattr(settings, 'DUMP1090_POLLING_TIME', 10)
 CACHE_TTL = getattr(settings, 'CACHE_TTL', 600)
 MAX_WORKERS = getattr(settings, 'DUMP1090_MAX_WORKERS', 4)
@@ -40,9 +39,14 @@ def get_cached_data(key: str, fetch_fn: callable) -> Optional[Dict[str, Any]]:
 
 def process_flight(flight: Dict[str, Any]) -> None:
     """Process individual flight data with proper error isolation."""
+    
+    if not isinstance(flight, dict):
+        logger.error("Received non-dictionary flight data: %s", flight)
+        return
+    
     logger.error("Trying to save data.")
     logger.error(flight)
-    # with suppress(Exception):  # Prevent one bad flight from breaking others
+
     hex_code = flight.get('hex')
     callsign = flight.get('flight')
 
@@ -60,16 +64,24 @@ def process_flight(flight: Dict[str, Any]) -> None:
     retry_backoff_max=300,
     max_retries=3
 )
+@shared_task(...)
 def poll_dump1090_task():
-    """Periodic task to collect and process dump1090 data."""
     logger.error("Starting poll_dump1090_task...")
     try:
-        # Fetch and process flights in parallel
-        flights = fetch_dump1090_data()
-        logger.error(f"Data fetched {flights}")
+        response = fetch_dump1090_data()
+        logger.error(f"Full response: {response}")
+        
+        aircraft_list = response.get('aircraft', []) 
+        if not aircraft_list:
+            logger.warning("No aircraft found in response")
+            return 
+        
+        aircraft_list = response.get('aircraft', [])
+        logger.error(f"Found {len(aircraft_list)} aircraft")
+        
         with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-            list(executor.map(process_flight, flights))
+            list(executor.map(process_flight, aircraft_list))
 
     except Exception as e:
         logger.critical("Polling task failed: %s", e, exc_info=True)
-        raise  # Enable Celery auto-retry
+        raise
