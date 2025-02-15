@@ -66,7 +66,7 @@ def poll_dump1090_task():
     try:
         # Fetch and process flights in parallel
         flights = fetch_dump1090_data()
-        logger.error("Data fetched")
+        logger.error(f"Data fetched {flights}")
         with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
             list(executor.map(process_flight, flights))
 
