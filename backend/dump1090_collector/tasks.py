@@ -48,6 +48,7 @@ def process_flight(flight: Dict[str, Any]) -> None:
         callsign_data = get_cached_data(callsign, fetch_adsbdbCallsignData) if callsign else {}
 
         store_data(flight, aircraft_data, callsign_data)
+        logger.error("Data saved successfully.")
 
 
 @shared_task(
@@ -59,9 +60,11 @@ def process_flight(flight: Dict[str, Any]) -> None:
 )
 def poll_dump1090_task():
     """Periodic task to collect and process dump1090 data."""
+    logger.error("Starting poll_dump1090_task...")
     try:
         # Fetch and process flights in parallel
         flights = fetch_dump1090_data()
+        logger.error("Data fetched: %s", flights)
         with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
             list(executor.map(process_flight, flights))
 

@@ -105,9 +105,8 @@ before making any code changes [ADSBDB Website](https://www.adsbdb.com/).
 ### 🗄️ Database Management
 ```
 # Apply migrations
-podman exec flightspy_backend python manage.py makemigrations dump1090_collector
-podman exec flightspy_backend python manage.py migrate
-podman exec flightspy_backend python manage.py migrate django_celery_beat
+docker exec flightspy_backend python manage.py makemigrations dump1090_collector
+docker exec flightspy_backend python manage.py migrate
 
 # Reset database
 podman exec web python backend/manage.py flush
