@@ -4,17 +4,15 @@ networks:
     driver: bridge
 
 services:
-dump1090:
-  hostname: dump1090.service.private
-  domainname: flightspy.internal
-  networks:
-    - flightspy-net
-  image: jraviles/dump1090
-  devices:
-    - "/dev/bus/usb/003/002"
-  ports:
-    - "8080:8080"
-  restart: unless-stopped
+  dump1090:
+    hostname: dump1090.service.private
+    domainname: flightspy.internal
+    networks:
+      - flightspy-net
+    image: jraviles/dump1090
+    devices:
+      - "/dev/bus/usb/003/002"
+    restart: unless-stopped
 
   db:
     networks:
