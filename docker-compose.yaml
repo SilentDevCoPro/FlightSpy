@@ -2,7 +2,6 @@ version: '3.8'
 networks:
   flightspy-net:
     driver: bridge
-    internal: true
 
 services:
   dump1090:
@@ -26,6 +25,9 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    command: ["postgres", "-c", "listen_addresses=*"] 
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
