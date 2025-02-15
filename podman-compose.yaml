@@ -5,6 +5,8 @@ networks:
 
 services:
   dump1090:
+    networks:
+      - flightspy-net
     image: jraviles/dump1090
     ports:
       - 8080:8080/tcp
