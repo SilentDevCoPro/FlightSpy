@@ -41,15 +41,15 @@ def get_cached_data(key: str, fetch_fn: callable) -> Optional[Dict[str, Any]]:
 def process_flight(flight: Dict[str, Any]) -> None:
     """Process individual flight data with proper error isolation."""
     logger.error("Trying to save data.")
-    with suppress(Exception):  # Prevent one bad flight from breaking others
-        hex_code = flight.get('hex')
-        callsign = flight.get('flight')
+    # with suppress(Exception):  # Prevent one bad flight from breaking others
+    hex_code = flight.get('hex')
+    callsign = flight.get('flight')
 
-        aircraft_data = get_cached_data(hex_code, fetch_adsbdbAircraftData) if hex_code else {}
-        callsign_data = get_cached_data(callsign, fetch_adsbdbCallsignData) if callsign else {}
+    aircraft_data = get_cached_data(hex_code, fetch_adsbdbAircraftData) if hex_code else {}
+    callsign_data = get_cached_data(callsign, fetch_adsbdbCallsignData) if callsign else {}
 
-        store_data(flight, aircraft_data, callsign_data)
-        logger.error("Data saved successfully.")
+    store_data(flight, aircraft_data, callsign_data)
+    logger.error("Data saved successfully.")
 
 
 @shared_task(
