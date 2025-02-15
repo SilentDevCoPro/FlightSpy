@@ -19,7 +19,7 @@ cron-descriptor==1.4.5
 decorator==5.1.1
 defusedxml==0.7.1
 Django==5.1.5
-django-celery-beat==3.0.0
+django-celery-beat==2.7.0
 django-cors-headers==4.6.0
 django-db-connection-pool==1.2.5
 django-db-geventpool==4.0.7

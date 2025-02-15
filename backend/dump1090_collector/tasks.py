@@ -74,6 +74,7 @@ def poll_dump1090_task():
         aircraft_list = response.get('aircraft', []) 
         if not aircraft_list:
             logger.warning("No aircraft found in response")
+            return 
         
         aircraft_list = response.get('aircraft', [])
         logger.error(f"Found {len(aircraft_list)} aircraft")
