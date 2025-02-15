@@ -2,14 +2,15 @@ version: '3.8'
 networks:
   flightspy-net:
     driver: bridge
+    internal: true
 
 services:
   dump1090:
+    hostname: dump1090.service.private
+    domainname: flightspy.internal
     networks:
       - flightspy-net
     image: jraviles/dump1090
-    ports:
-      - 8080:8080/tcp
     devices:
       - "/dev/bus/usb/003/002"
     restart: unless-stopped
@@ -25,8 +26,6 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
@@ -45,8 +44,6 @@ services:
       - PYTHONPATH=/app/backend
     volumes:
       - .:/app
-    ports:
-      - "8000:8000"
     depends_on:
       db:
         condition: service_healthy
@@ -56,8 +53,6 @@ services:
       - flightspy-net
     image: redis:7.0-alpine
     container_name: flightspy_redis
-    ports:
-      - "6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s

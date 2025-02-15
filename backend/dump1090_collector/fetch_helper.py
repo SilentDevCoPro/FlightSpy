@@ -30,7 +30,7 @@ def fetch_json(url: str, timeout=10) -> dict:
 
 
 def fetch_dump1090_data() -> list:
-    return fetch_json('http://dump1090:8080/dump1090/data.json')
+    return fetch_json('http://dump1090:8080/data/aircraft.json')
 
 
 def fetch_adsbdbAircraftData(hex_id) -> dict:
