@@ -41,6 +41,7 @@ def get_cached_data(key: str, fetch_fn: callable) -> Optional[Dict[str, Any]]:
 def process_flight(flight: Dict[str, Any]) -> None:
     """Process individual flight data with proper error isolation."""
     logger.error("Trying to save data.")
+    logging.error(flight)
     # with suppress(Exception):  # Prevent one bad flight from breaking others
     hex_code = flight.get('hex')
     callsign = flight.get('flight')
