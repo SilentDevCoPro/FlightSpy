@@ -15,7 +15,8 @@ RUN --mount=type=cache,target=/var/cache/apt \
     python3-dev \
     libpq-dev \
     iputils-ping && \
-    rm -rf /var/lib/apt/lists/*
+    rm -rf /var/lib/apt/lists/* && \
+    pip install --upgrade pip
 
 WORKDIR /app/backend
 
