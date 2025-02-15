@@ -64,7 +64,7 @@ def process_flight(flight: Dict[str, Any]) -> None:
     retry_backoff_max=300,
     max_retries=3
 )
-@shared_task(...)
+@shared_task()
 def poll_dump1090_task():
     logger.error("Starting poll_dump1090_task...")
     try:
