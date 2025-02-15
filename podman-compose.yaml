@@ -1,4 +1,7 @@
 version: '3.8'
+networks:
+  flightspy-net:
+    driver: bridge
 
 services:
   dump1090:
@@ -10,6 +13,8 @@ services:
     restart: unless-stopped
 
   db:
+    networks:
+      - flightspy-net
     image: postgres:15
     container_name: my_postgres_db
     environment:
@@ -27,6 +32,8 @@ services:
       retries: 5
 
   web:
+    networks:
+      - flightspy-net
     build: ./backend
     container_name: flightspy_backend
     command: python manage.py runserver 0.0.0.0:8000
@@ -43,6 +50,8 @@ services:
         condition: service_healthy
 
   redis:
+    networks:
+      - flightspy-net
     image: redis:7.0-alpine
     container_name: flightspy_redis
     ports:
@@ -54,6 +63,8 @@ services:
       retries: 5
 
   celery-worker:
+    networks:
+      - flightspy-net
     build: ./backend
     container_name: flightspy_celery_worker
     working_dir: /app/backend
@@ -77,6 +88,8 @@ services:
       - .:/app:z
 
   celery-beat:
+    networks:
+      - flightspy-net
     build: ./backend
     container_name: flightspy_celery_beat
     working_dir: /app/backend
