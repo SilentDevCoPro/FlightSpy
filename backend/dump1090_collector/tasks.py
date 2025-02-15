@@ -43,9 +43,6 @@ def process_flight(flight: Dict[str, Any]) -> None:
     if not isinstance(flight, dict):
         logger.error("Received non-dictionary flight data: %s", flight)
         return
-    
-    logger.error("Trying to save data.")
-    logger.error(flight)
 
     hex_code = flight.get('hex')
     callsign = flight.get('flight')
@@ -54,7 +51,6 @@ def process_flight(flight: Dict[str, Any]) -> None:
     callsign_data = get_cached_data(callsign, fetch_adsbdbCallsignData) if callsign else {}
 
     store_data(flight, aircraft_data, callsign_data)
-    logger.error("Data saved successfully.")
 
 
 @shared_task(
@@ -65,18 +61,14 @@ def process_flight(flight: Dict[str, Any]) -> None:
     max_retries=3
 )
 def poll_dump1090_task():
-    logger.error("Starting poll_dump1090_task...")
     try:
         response = fetch_dump1090_data()
-        logger.error(f"Full response: {response}")
-        
         aircraft_list = response.get('aircraft', []) 
         if not aircraft_list:
             logger.warning("No aircraft found in response")
             return 
         
         aircraft_list = response.get('aircraft', [])
-        logger.error(f"Found {len(aircraft_list)} aircraft")
         
         with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
             list(executor.map(process_flight, aircraft_list))
