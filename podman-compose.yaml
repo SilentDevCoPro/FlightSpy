@@ -1,6 +1,14 @@
 version: '3.8'
 
 services:
+  dump1090:
+    image: jraviles/dump1090
+    ports:
+      - 8080:8080/tcp
+    devices:
+      - /dev/bus/usb
+    restart: unless-stopped
+
   db:
     image: postgres:15
     container_name: my_postgres_db

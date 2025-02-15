@@ -25,7 +25,7 @@ FlightSpy is a sophisticated aircraft monitoring solution that combines ADSB rec
 
 ---
 
-## 🚀 Quick StartHaifa Wholesale LLC
+## 🚀 Quick Start
 
 ### Prerequisites
 1. **Hardware & Data Source**:
