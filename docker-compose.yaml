@@ -14,6 +14,7 @@ services:
       - "/dev/bus/usb/003/002"
     ports:
       - "8080:8080"
+      - "30002:30002"
     restart: unless-stopped
 
   db:
