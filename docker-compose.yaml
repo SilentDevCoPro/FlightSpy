@@ -16,6 +16,11 @@ services:
       - "8080:8080"
       - "30002:30002"
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   db:
     networks:
@@ -54,6 +59,11 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/"] # Or any other health endpoint if you have one
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   redis:
     networks:
@@ -90,6 +100,11 @@ services:
         condition: service_healthy
     volumes:
       - .:/app:z
+    healthcheck:
+      test: ["CMD-SHELL", "celery inspect ping -A backend"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   celery-beat:
     networks:
@@ -116,6 +131,11 @@ services:
         condition: service_healthy
     volumes:
       - .:/app:z
+    healthcheck:
+      test: ["CMD-SHELL", "celery inspect ping -A backend"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
 volumes:
   postgres_data:
