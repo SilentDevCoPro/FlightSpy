@@ -119,9 +119,9 @@ DATABASES = {
         'HOST': config('POSTGRES_HOST', default='localhost'),
         'PORT': config('POSTGRES_PORT', default=5432, cast=int),
         'POOL_OPTIONS': {
-                'max_size': 10,
-                'overflow': 10,
-                'recycle': 24 * 60 * 60, 
+            'max_size': 10,
+            'overflow': 10,
+            'recycle': 24 * 60 * 60,
         }
     }
 }
