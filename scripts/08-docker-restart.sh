@@ -6,9 +6,9 @@ if [ $? -ne 0 ]; then
     echo "Error running docker-compose down."
     exit 1
 fi
-docker-compose up -d
+docker-compose up
 if [ $? -ne 0 ]; then
-    echo "Error running docker-compose up -d after down."
+    echo "Error running docker-compose up after down."
     exit 1
 fi
 
