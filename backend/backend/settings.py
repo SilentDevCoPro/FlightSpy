@@ -29,8 +29,13 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
-DUMP1090_POLLING_TIME = 10
+WSGI_APPLICATION = 'backend.wsgi.application'
+
+DUMP1090_POLLING_TIME = 2
 CACHE_TTL = 600
+
+REDIS_HOST = os.environ.get("REDIS_HOST", "redis")
+REDIS_PORT = os.environ.get("REDIS_PORT", "6379")
 
 CELERY_ACCEPT_CONTENT = ['application/json']
 CELERY_TASK_SERIALIZER = 'json'
@@ -38,7 +43,6 @@ CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'UTC'
 CELERY_BROKER_URL = f"redis://{os.environ.get('REDIS_HOST', 'redis')}:{os.environ.get('REDIS_PORT', 6379)}/0"
 CELERY_RESULT_BACKEND = f"redis://{os.environ.get('REDIS_HOST', 'redis')}:{os.environ.get('REDIS_PORT', 6379)}/0"
-
 
 # Application definition
 
@@ -51,7 +55,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'corsheaders',
-    'dump1090_collector'
+    'dump1090_collector',
+    'django_celery_beat',
 ]
 
 REST_FRAMEWORK = {
@@ -94,7 +99,15 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'backend.wsgi.application'
+CELERY_BEAT_SCHEDULE = {
+    'poll-dump1090': {
+        'task': 'dump1090_collector.tasks.poll_dump1090_task',
+        'schedule': DUMP1090_POLLING_TIME,
+        'options': {
+            'queue': 'dump1090_queue'
+        }
+    },
+}
 
 
 DATABASES = {
@@ -105,11 +118,13 @@ DATABASES = {
         'PASSWORD': config('POSTGRES_PASSWORD', default=''),
         'HOST': config('POSTGRES_HOST', default='localhost'),
         'PORT': config('POSTGRES_PORT', default=5432, cast=int),
+        'POOL_OPTIONS': {
+            'max_size': 10,
+            'overflow': 10,
+            'recycle': 24 * 60 * 60,
+        }
     }
 }
-
-REDIS_HOST = os.environ.get("REDIS_HOST", "redis")
-REDIS_PORT = os.environ.get("REDIS_PORT", "6379")
 
 CACHES = {
     "default": {

@@ -1,0 +1,141 @@
+version: '3.8'
+networks:
+  flightspy-net:
+    driver: bridge
+
+services:
+  dump1090:
+    hostname: dump1090.service.private
+    domainname: flightspy.internal
+    networks:
+      - flightspy-net
+    image: jraviles/dump1090
+    devices:
+      - "/dev/bus/usb/003/002"
+    ports:
+      - "8080:8080"
+      - "30002:30002"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  db:
+    networks:
+      - flightspy-net
+    image: postgres:15
+    container_name: my_postgres_db
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_HOST_AUTH_METHOD=md5
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    command: ["postgres", "-c", "listen_addresses=*"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  web:
+    networks:
+      - flightspy-net
+    build: ./backend
+    container_name: flightspy_backend
+    command: python manage.py runserver 0.0.0.0:8000
+    working_dir: /app/backend
+    environment:
+      - DJANGO_SETTINGS_MODULE=backend.settings
+      - PYTHONPATH=/app/backend
+    volumes:
+      - .:/app
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/"] # Or any other health endpoint if you have one
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    networks:
+      - flightspy-net
+    image: redis:7.0-alpine
+    container_name: flightspy_redis
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  celery-worker:
+    networks:
+      - flightspy-net
+    build: ./backend
+    container_name: flightspy_celery_worker
+    working_dir: /app/backend
+    command: celery -A backend worker -l INFO -Q dump1090_queue
+    environment:
+      - DJANGO_SETTINGS_MODULE=backend.settings
+      - PYTHONPATH=/app/backend
+      - POSTGRES_HOST=db
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - CELERY_WORKER_RUNNING=1
+    depends_on:
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+    volumes:
+      - .:/app:z
+    healthcheck:
+      test: ["CMD-SHELL", "celery inspect ping -A backend"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  celery-beat:
+    networks:
+      - flightspy-net
+    build: ./backend
+    container_name: flightspy_celery_beat
+    working_dir: /app/backend
+    command: celery -A backend beat -l INFO --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    environment:
+      - DJANGO_SETTINGS_MODULE=backend.settings
+      - PYTHONPATH=/app/backend
+      - POSTGRES_HOST=db
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    cap_add:
+      - NET_RAW
+    depends_on:
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+    volumes:
+      - .:/app:z
+    healthcheck:
+      test: ["CMD-SHELL", "celery inspect ping -A backend"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:

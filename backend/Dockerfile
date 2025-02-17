@@ -1,29 +1,33 @@
-# In your backend/Dockerfile
 FROM python:3.11-slim
 
-# Create system user and group first
-RUN groupadd -r celeryuser && \
-    useradd -r -g celeryuser celeryuser
+ARG UID=1000
+ARG GID=1000
 
-# Install dependencies
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends gcc python3-dev && \
-    rm -rf /var/lib/apt/lists/*
+# Create user with fixed UID/GID first to maximize cache stability
+RUN groupadd -g ${GID} celeryuser && \
+    useradd -u ${UID} -g celeryuser -m celeryuser
+
+# Install system dependencies
+RUN --mount=type=cache,target=/var/cache/apt \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+    gcc \
+    python3-dev \
+    libpq-dev \
+    iputils-ping && \
+    rm -rf /var/lib/apt/lists/* && \
+    pip install --upgrade pip
 
 WORKDIR /app/backend
 
-# Copy requirements first for caching
+# Install Python dependencies with cache optimization
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
-COPY . .
+# Copy application code with proper ownership
+COPY --chown=celeryuser:celeryuser . .
 
-# Set ownership BEFORE switching user
-RUN chown -R celeryuser:celeryuser /app
-
-# Switch to non-root user
 USER celeryuser
 
-# Default command (can be overridden in compose)
 CMD ["celery", "-A", "backend", "worker", "-l", "info"]
