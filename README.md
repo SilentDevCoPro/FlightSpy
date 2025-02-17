@@ -3,7 +3,7 @@
 [![Django](https://img.shields.io/badge/Django-5.1.5-brightgreen.svg)](https://www.djangoproject.com/)
 [![Docker](https://img.shields.io/badge/Docker-27.3.1-blue.svg)](https://www.docker.com/)
 [![Postgres](https://img.shields.io/badge/PostgreSQL-15.0-blue)](https://www.postgresql.org/)
-[![Docker Compose](https://www.docker.com/wp-content/uploads/2022/03/Moby-logo.png)](https://docs.docker.com/compose/)
+[![Docker Compose](https://img.shields.io/badge/Docker%20Compose-blue.svg)](https://docs.docker.com/compose/)
 [![Redis](https://img.shields.io/badge/Redis-7.0--alpine-red.svg)](https://redis.io/)
 
 **Real-time Aircraft Tracking & Data Enrichment System**
