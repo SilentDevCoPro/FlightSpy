@@ -30,44 +30,30 @@ FlightSpy is a sophisticated aircraft monitoring solution that combines ADSB rec
 ### Prerequisites
 1. **Hardware & Data Source**:
    - ADSB receiver feeding data to [Dump1090](https://github.com/flightaware/dump1090).
-2. **Software Requirements**:
-   - [![Podman Compose](https://img.shields.io/badge/Podman_Compose-v1.3.0-blue.svg)](https://github.com/containers/podman-compose) Engine installed and running.
-   - ```pip3 install podman-compose```  For container orchestration
+   - Raspberry Pi5 (This was tested and run on the Pi5, I'm sure it will work with most Linux distros)
 
----
 
 ### Installation
+#### Installation process is NOT thoroughly tested at this stage, please report any problems/fixs!
 1. Clone repository:
  ```
    git clone https://github.com/yourusername/flightspy.git
    cd flightspy
 ```
 
-2. Create environment file:
-.env file in the project root directory
-
-3. Add Cridentials to .env file.
+2. Script permissions
 ```
-POSTGRES_DB=flightspy
-POSTGRES_USER=flightspy_user
-POSTGRES_PASSWORD=secret_password
-POSTGRES_HOST=db
-POSTGRES_PORT=5432
-```
-4. Windows machines may need to apply this fix to get podman-compose working.
-```
-C:\Users\User\Documents\GitHub\FlightSpy\.venv\Lib\site-packages\podman_compose.py
-Comment out this line:
-# loop.add_signal_handler(signal.SIGINT, lambda: [t.cancel("User exit") for t in tasks])
+   chmod +x setup.sh scripts/*.sh
 ```
 
-5. Start services from root directory
+3. Run setup
 ```
-podman-compose up --build -d
+   ./setup.sh
 ```
+### Finished
+IF all went well, the script will give you the information to access your fancy new locally hosted ADSB data!
 
----
-
+## For the nerds the want to learn/contribute to the project
 
 ### 🔧 System Architecture
 
@@ -101,15 +87,15 @@ FlightSpy integrates with ADSBDB API for aircraft data enrichment. Ensure you ha
 before making any code changes [ADSBDB Website](https://www.adsbdb.com/).
 
 ---
+## Database Actions
+### Reset database
+docker exec web python backend/manage.py flush
 
-### 🗄️ Database Management
-```
-# Apply migrations
-docker exec flightspy_backend python manage.py makemigrations dump1090_collector
-docker exec flightspy_backend python manage.py migrate
+### Backup db
+docker exec -t db pg_dump -U ${POSTGRES_USER} -d ${POSTGRES_DB} > backup.sql
 
-# Reset database
-podman exec web python backend/manage.py flush
+### Restore db
+docker exec -i db psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} < backup.sql
 ```
 
 ---
@@ -117,10 +103,10 @@ podman exec web python backend/manage.py flush
 ### 🧪 Testing
 ```
 # Run all tests
-podman run --rm web python backend/manage.py test dump1090_collector.tests
+docker compose run --rm web python backend/manage.py test dump1090_collector.tests
 
 # Specific test case
-podman run --rm web python backend/manage.py test dump1090_collector.tests.example
+docker compose run --rm web python backend/manage.py test dump1090_collector.tests.example
 ```
 
 ---
