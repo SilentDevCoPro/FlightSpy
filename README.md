@@ -3,7 +3,7 @@
 [![Django](https://img.shields.io/badge/Django-5.1.5-brightgreen.svg)](https://www.djangoproject.com/)
 [![Docker](https://img.shields.io/badge/Docker-27.3.1-blue.svg)](https://www.docker.com/)
 [![Postgres](https://img.shields.io/badge/PostgreSQL-15.0-blue)](https://www.postgresql.org/)
-[![Podman Compose](https://img.shields.io/badge/Podman_Compose-v1.3.0-blue.svg)](https://github.com/containers/podman-compose)
+[![Docker Compose](https://www.docker.com/wp-content/uploads/2022/03/Moby-logo.png)](https://docs.docker.com/compose/)
 [![Redis](https://img.shields.io/badge/Redis-7.0--alpine-red.svg)](https://redis.io/)
 
 **Real-time Aircraft Tracking & Data Enrichment System**
@@ -88,13 +88,14 @@ before making any code changes [ADSBDB Website](https://www.adsbdb.com/).
 
 ---
 ## Database Actions
-### Reset database
+```
+# Reset database
 docker exec web python backend/manage.py flush
 
-### Backup db
+# Backup db
 docker exec -t db pg_dump -U ${POSTGRES_USER} -d ${POSTGRES_DB} > backup.sql
 
-### Restore db
+# Restore db
 docker exec -i db psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} < backup.sql
 ```
 
