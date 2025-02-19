@@ -46,7 +46,16 @@ FlightSpy is a sophisticated aircraft monitoring solution that combines ADSB rec
    chmod +x setup.sh scripts/*.sh
 ```
 
-3. Run setup
+3. Convert script files
+I do all of my developement on a Windows 11 machine... I know its a sin but this is a fix you have to do:
+```
+# Run these 3 commands from the root folder
+apt update && apt install dos2unix
+dos2unix setup.sh
+dos2unix scripts/*
+```
+
+4. Run setup
 ```
    ./setup.sh
 ```
@@ -108,6 +117,12 @@ docker compose run --rm web python backend/manage.py test dump1090_collector.tes
 
 # Specific test case
 docker compose run --rm web python backend/manage.py test dump1090_collector.tests.example
+
+# Test setup.sh scripts from the root directory of project
+docker buildx build --platform linux/arm64 -t pi5-test .
+docker run --platform linux/arm64 --privileged  pi5-test
+
 ```
+
 
 ---
