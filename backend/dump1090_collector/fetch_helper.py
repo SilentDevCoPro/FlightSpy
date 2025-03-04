@@ -7,29 +7,38 @@ def fetch_json(url: str, timeout=10) -> dict:
     try:
         response = requests.get(url, timeout=timeout)
         response.raise_for_status()
-        return response.json()
+        data = response.json()
+        
+        # Ensure we always return a dictionary
+        if isinstance(data, dict):
+            return data
+        else:
+            logging.error(f"Unexpected non-dictionary response from {url}: {data}")
+            return {"response": str(data)}
+            
     except requests.exceptions.RequestException as e:
         if response is not None:
             try:
                 content = response.json()
+                if isinstance(content, dict):
+                    resp_value = content.get("response", "")
+                    if resp_value in ["unknown callsign", "unknown aircraft"]:
+                        logging.info(f"{resp_value} from {url}: {content}")
+                        return content
+                    else:
+                        logging.error(f"Request to {url} failed: {e}. Response content: {content}")
+                else:
+                    logging.error(f"Non-dictionary response from {url}: {content}")
+                    return {"response": str(content)}
             except ValueError:
-                content = {}
-
-            resp_value = content.get("response", "")
-            if resp_value == "unknown callsign":
-                logging.info(f"Unknown callsign from {url}: {content}")
-                return content
-            elif resp_value == "unknown aircraft":
-                logging.info(f"Unknown aircraft from {url}: {content}")
-                return content
-            else:
-                logging.error(f"Request to {url} failed: {e}. Response content: {content}")
+                logging.error(f"Invalid JSON response from {url}: {response.text}")
+                return {"response": response.text}
         else:
             logging.error(f"No response returned from {url}. Error: {e}")
         return {}
 
 
-def fetch_dump1090_data() -> list:
+def fetch_dump1090_data() -> dict:
     return fetch_json('http://dump1090:8080/data/aircraft.json')
 
 

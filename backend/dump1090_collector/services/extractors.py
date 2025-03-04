@@ -20,10 +20,18 @@ def extract_aircraft_info(adsbdb_aircraft_data):
 
 
 def extract_callsign_info(adsbdb_callsign_data):
+    """Extract callsign information, ensuring a dictionary is always returned."""
     if not isinstance(adsbdb_callsign_data, dict):
         logging.error("adsbdb_callsign_data is not a dict: %s", adsbdb_callsign_data)
         return {}
-    return adsbdb_callsign_data.get('response', {})
+    
+    response = adsbdb_callsign_data.get('response')
+    if not isinstance(response, dict):
+        if response is not None:
+            logging.debug("Received non-dict callsign response: %s", response)
+        return {}
+        
+    return response
 
 
 def should_process_flight_data(flight, flight_hex):
