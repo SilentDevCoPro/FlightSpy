@@ -1,5 +1,7 @@
 import logging
 from django.utils import timezone
+from datetime import timedelta
+from ..models import FlightData
 
 
 def extract_aircraft_info(adsbdb_aircraft_data):
@@ -21,20 +23,47 @@ def extract_callsign_info(adsbdb_callsign_data):
     if not isinstance(adsbdb_callsign_data, dict):
         logging.error("adsbdb_callsign_data is not a dict: %s", adsbdb_callsign_data)
         return {}
-    callsign_response = adsbdb_callsign_data.get('response')
-    if not isinstance(callsign_response, dict):
-        if callsign_response in (None, "unknown callsign"):
-            logging.debug("Received callsign response: %s", callsign_response)
-            return {}
-        else:
-            logging.error("adsbdb_callsign_data['response'] is not a dict: %s", callsign_response)
-            return {}
-    return callsign_response
+    return adsbdb_callsign_data.get('response', {})
+
+
+def should_process_flight_data(flight, flight_hex):
+    """
+    Validate if the flight data should be processed based on position validity
+    and duplicate detection.
+    """
+    # Check for valid position data
+    lat = flight.get('lat', 0.0)
+    lon = flight.get('lon', 0.0)
+    valid_position = bool(flight.get('validposition', 0))
+    
+    if not valid_position or lat == 0.0 or lon == 0.0:
+        logging.debug("Skipping flight %s: Invalid position data", flight_hex)
+        return False
+
+    # Check for recent duplicates
+    recent_duplicate = FlightData.objects.filter(
+        aircraft__hex_id=flight_hex,
+        latitude=lat,
+        longitude=lon,
+        timestamp__gte=timezone.now() - timedelta(seconds=5)
+    ).exists()
+
+    if recent_duplicate:
+        logging.debug("Skipping flight %s: Recent duplicate position", flight_hex)
+        return False
+
+    return True
 
 
 def extract_flight_data(flight):
+    flight_hex = flight.get('hex', '').strip()
+    
+    # Validate the flight data before processing
+    if not should_process_flight_data(flight, flight_hex):
+        return None
+
     return {
-        "flight_hex": flight.get('hex', '').strip(),
+        "flight_hex": flight_hex,
         "squawk": flight.get('squawk', 0),
         "flight_callsign": flight.get('flight', '').strip(),
         "lat": flight.get('lat', 0.0),

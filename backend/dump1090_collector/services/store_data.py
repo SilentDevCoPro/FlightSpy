@@ -11,6 +11,11 @@ def store_data(flight, adsbdb_aircraft_data, adsbdb_callsign_data):
     origin_info = flightroute_info.get('origin', {}) or {}
     destination_info = flightroute_info.get('destination', {}) or {}
     flight_fields = extract_flight_data(flight)
+
+    # If flight data validation failed, skip storing
+    if flight_fields is None:
+        return None
+
     aircraft_obj = get_or_create_aircraft(aircraft_info, flight_fields["flight_hex"])
     airline_obj = get_or_create_airline(airline_info)
     origin_airport = get_or_create_airport(origin_info)
